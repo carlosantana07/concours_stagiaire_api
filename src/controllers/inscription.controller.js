@@ -6,7 +6,7 @@ export class InscriptionController {
   try {
     const id_candidat = req.user.id;
     const id_concours = parseInt(req.body.id_concours);
-    const id_centre   = parseInt(req.body.id_centre); // ← nouveau
+    const id_centre   = parseInt(req.body.id_centre); 
 
     if (!id_concours || isNaN(id_concours)) {
       return res.status(400).json({ error: "id_concours invalide" });
