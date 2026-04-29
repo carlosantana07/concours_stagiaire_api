@@ -45,7 +45,7 @@ export class CandidatController {
       },
     });
 
-     candidat.date_naissance = candidat.date_naissance.toLocaleDateString("FR-fr")
+     candidat.date_naissance = candidat.date_naissance.toLocaleDateString("fr-FR")
 
     if (!candidat) {
       return res.status(404).json({ error: "Candidat introuvable" });
