@@ -1580,5 +1580,7 @@ export class AdminController {
     if(!files || files.length===0){
       return res.status(400).json({error: 'aucun fichier uploader veuillez inserer le document'})
     }
+
+    // proceder a l'upload des fichiers 
   }
 }

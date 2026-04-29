@@ -153,7 +153,7 @@ export class AuthController {
           pays_naissance,
           numero_cnib,
           date_delivrance:    date_delivrance ? new Date(date_delivrance) : null,
-          telephone:          formatted,  // numéro formaté
+          telephone:          formatted, 
           email:              email ?? null,
           mot_de_passe:       motDePasseHashe,
           statut_compte:      "INACTIF",
