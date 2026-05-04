@@ -526,9 +526,7 @@ export class AdminController {
 
     return res.status(200).json({ data: concours });
   }
-  // ─────────────────────────────────────────────
-  // CANDIDATS
-  // ─────────────────────────────────────────────
+
 
   static async SearchCandidat(req, res) {
     const {
@@ -591,6 +589,14 @@ export class AdminController {
     }
 
     return res.status(200).json({ message: "Candidat supprimé avec succès" });
+  }
+
+  static GetAllCandidat (){
+    const page = parseInt(req.query.page) || 1 ;
+    const limit = 10 ;
+    const skip = (page-1) * limit; 
+
+    // recuperer tous les candidats et les mettres en caache
   }
 
   static async ListesPaiements(req, res) {
