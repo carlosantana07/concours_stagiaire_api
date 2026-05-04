@@ -143,7 +143,7 @@ export class CandidatController {
   // ─── mes-candidatures ─────────────────
 static async getMesCandidatures(req, res) {
   const { id_candidat } = req.user;
-  const limit           = 10;
+  const limit           = 5;
   const page            = parseInt(req.query.page) || 1;
   const skip            = (page - 1) * limit;
 
