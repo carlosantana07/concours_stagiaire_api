@@ -588,6 +588,8 @@ export class AdminController {
       data: { deletedAt: new Date() },
     });
 
+    const cacheKey = `candidat:${id_candidat}`;
+    await redis.del(cacheKey);
     for (let page = 1; page <= 10; page++) {
       await redis.del(`candidat:${page}:limit:10`);
     }
@@ -800,7 +802,7 @@ export class AdminController {
     await redis.del(cacheKey);
 
     return res.status(200).json({message: 'les informations du candidats ont ete mise a jour'});
-    
+
   }
 
 
