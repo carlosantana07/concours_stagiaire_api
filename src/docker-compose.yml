@@ -1,3 +1,5 @@
+version: '3.9'
+
 services:
 
   minio:
@@ -24,9 +26,7 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-
     command: redis-server --appendonly yes
-
     networks:
       - e-concours-network
 
@@ -50,10 +50,26 @@ services:
       timeout: 5s
       retries: 5
 
+  azure-cli:
+    image: mcr.microsoft.com/azure-cli:azurelinux3.0
+    container_name: e-concours-azure-cli
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    environment:
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET}
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID}
+    volumes:
+      - azure_config:/root/.azure
+    networks:
+      - e-concours-network
+
 volumes:
   minio_data:
   redis_data:
   postgres_data:
+  azure_config:
 
 networks:
   e-concours-network:
