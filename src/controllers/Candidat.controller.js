@@ -431,7 +431,7 @@ static async getRecepisse(req, res) {
 
       const doc = await prisma.document.create({
         data: {
-          id_candidat,
+          id_candidat, 
           type_document,
           fichier:     objectName,
           date_upload: new Date(),

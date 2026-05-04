@@ -205,6 +205,8 @@ enum TypeDocument {
   BEPC
   BEP
   BAC
+  CNIB
+  PASSPORT
   LICENCE
   MASTER
   DOCTORAT
