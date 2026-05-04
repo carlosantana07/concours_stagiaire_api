@@ -66,7 +66,12 @@ export class AdminController {
       return res.status(401).json({ error: "Votre compte n'a pas été activé" });
     }
 
-    if (!(await bcrypt.compare(mot_de_passe, admin.mot_de_passe))) {
+    const motDePasseCorrect = await bcrypt.compare(
+      mot_de_passe,
+      admin.mot_de_passe,
+    );
+
+    if (!motDePasseCorrect) {
       return res
         .status(401)
         .json({ error: "Les informations de connexion sont erronées" });
@@ -527,7 +532,6 @@ export class AdminController {
     return res.status(200).json({ data: concours });
   }
 
-
   static async SearchCandidat(req, res) {
     const {
       nom,
@@ -584,6 +588,8 @@ export class AdminController {
       data: { deletedAt: new Date() },
     });
 
+    const cacheKey = `candidat:${id_candidat}`;
+    await redis.del(cacheKey);
     for (let page = 1; page <= 10; page++) {
       await redis.del(`candidat:${page}:limit:10`);
     }
@@ -591,13 +597,215 @@ export class AdminController {
     return res.status(200).json({ message: "Candidat supprimé avec succès" });
   }
 
-  static GetAllCandidat (){
-    const page = parseInt(req.query.page) || 1 ;
-    const limit = 10 ;
-    const skip = (page-1) * limit; 
+  static async GetAllCandidat(req, res) {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    // console.log(page)
+
+    const cachekey = `candidat:page:${page}:limit:${limit}`;
+
+    const cached = await redis.get(cachekey);
+    if (cached) {
+      return res.status(200).json(JSON.parse(cached));
+    }
 
     // recuperer tous les candidats et les mettres en caache
+
+    const candidat = await prisma.candidat.findMany({
+      take: limit,
+      skip,
+      select: {
+        id_candidat: true,
+        nom: true,
+        prenom: true,
+        type_candidat: true,
+      },
+    });
+
+    if (!candidat) {
+      return res.status(404).json({ error: "aucun candidat trouve" });
+    }
+    // reucperer les inscriptions liee a cet l'utilisateur
+
+    let resp = [];
+
+    for (const cand of candidat) {
+      const inscription = await prisma.inscription.findFirst({
+        where: {
+          id_candidat: cand.id_candidat,
+        },
+        select: {
+          date_inscription: true,
+          centre: true,
+          concours: {
+            select: {
+              nom: true,
+              type: true,
+              categorie: {
+                select: {
+                  libelle: true,
+                },
+              },
+            },
+          },
+          paiement: {
+            select: {
+              date_paiement: true,
+              statut_paiement: true,
+            },
+          },
+        },
+      });
+
+      resp.push({
+        candidat: cand,
+        concours: inscription.concours,
+        paiement: inscription.paiement,
+      });
+    }
+
+    await redis.set(cachekey, JSON.stringify(resp), "EX", 60);
+
+    return res.status(200).json({ resp });
   }
+
+  static async DetailCandidat(req, res) {
+    const { id_candidat } = req.params;
+    // console.log(id_candidat)
+
+    if (!id_candidat) {
+      return res
+        .status(400)
+        .json({ error: "les referenses du candidats sont manquantes" });
+    }
+
+    const cacheKey = `candidat:${id_candidat}`;
+    const cached = await redis.get(cacheKey);
+
+    if (cached) {
+      return res.status(200).json(JSON.parse(cached));
+    }
+
+    let resp = [];
+
+    //au cas ou dans le cache on n'est pas de candidat
+
+    const candidat = await prisma.candidat.findUnique({
+      where: {
+        id_candidat: id_candidat,
+      },
+      select: {
+        nom: true,
+        prenom: true,
+        nom_jeune_fille: true,
+        sexe: true,
+        date_naissance: true,
+        lieu_naissance: true,
+        pays_naissance: true,
+        numero_cnib: true,
+        date_delivrance: true,
+        telephone: true,
+        email: true,
+        type_candidat: true,
+        emploi: true,
+        matricule: true,
+        ministere: true,
+        statut_compte: true,
+        date_creation: true,
+      },
+    });
+
+    if (!candidat || candidat.length == 0) {
+      return res.status(404).json({ error: "aucun candidat trouve" });
+    }
+
+    const inscription = await prisma.inscription.findMany({
+      where: {
+        id_candidat: id_candidat,
+      },
+      include:{
+        concours:{
+          include:{
+            categorie:true
+          }
+        },
+        centre:true,
+        paiement:true
+        
+      }
+    });
+
+
+    // trier si le candidat est direct on enleve certain champs
+    let candid;
+
+    if (candidat.matricule === null) {
+      const { emploi, matricule, ministere, ...rest } = candidat;
+      candid = rest;
+    } else {
+      candid = candidat;
+    }
+    resp.push({
+      candidat: candid,
+      inscription: inscription,
+    });
+    //
+    // mettre en cache
+    await redis.set(cacheKey, JSON.stringify(resp), "EX", 60);
+
+    return res.status(200).json({ resp });
+  }
+
+  static async UpdateCandidat(req,res){
+    const {id_candidat} = req.params;
+
+    const {email,nom_jeune_fille, telephone, mot_de_passe, emploi, ministere, matricule} = req.body;
+
+    if(!id_candidat) return res.status(400).json({error: 'les references du candidats sont manquantes'});
+
+    const candidat = await prisma.candidat.findUnique({
+      where:{
+        id_candidat
+      }
+    });
+
+    if(!candidat){
+      return res.status(404).json({error: 'aucun candidat associer a cette reference'})
+    }
+
+    // mettre a jour le candidat 
+
+    await  prisma.$transaction (async(tx)=>{
+      const UpdateCandidat = await tx.candidat.update({
+        where:{
+          id_candidat: candidat.id_candidat
+        },
+
+        data:{
+          email: email ?? candidat.email,
+          nom_jeune_fille: nom_jeune_fille ?? candidat.nom_jeune_fille,
+          telephone: telephone ?? candidat.telephone,
+          mot_de_passe: mot_de_passe ?? candidat.mot_de_passe,
+          emploi: emploi ?? candidat.emploi,
+          ministere : ministere ?? candidat.ministere,
+          matricule: matricule ?? candidat.matricule
+        }
+      });
+
+      return UpdateCandidat;
+    });
+
+    const cacheKey = `candidat:${id_candidat}`;
+
+    await redis.del(cacheKey);
+
+    return res.status(200).json({message: 'les informations du candidats ont ete mise a jour'});
+
+  }
+
+
 
   static async ListesPaiements(req, res) {
     const {
@@ -1574,19 +1782,21 @@ export class AdminController {
     return res.status(200).json({ message: "Modification du centre reussi" });
   }
 
-  
-
-  static async UploadsExamresponse(){
-    const {id_examen} = req.body;
+  static async UploadsExamresponse() {
+    const { id_examen } = req.body;
     const files = req.files;
 
-    if(!id_examen){
-      return res.status(400).json({error: 'les references de l\'examen sont erronnes'})
+    if (!id_examen) {
+      return res
+        .status(400)
+        .json({ error: "les references de l'examen sont erronnes" });
     }
-    if(!files || files.length===0){
-      return res.status(400).json({error: 'aucun fichier uploader veuillez inserer le document'})
+    if (!files || files.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "aucun fichier uploader veuillez inserer le document" });
     }
 
-    // proceder a l'upload des fichiers 
+    // proceder a l'upload des fichiers
   }
 }

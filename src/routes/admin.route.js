@@ -47,6 +47,8 @@ router.put("/paiements/:id/status", AdminController.UpdatePaiementStatus);
 
 // ─── Candidats ──────────────────────────────────────────────────
 router.get("/candidats/search", AdminController.SearchCandidat);
+router.get("/candidats",AdminController.GetAllCandidat);
+router.get('/candidat/detail/:id_candidat',AdminController.DetailCandidat)
 
 // ─── Examens ────────────────────────────────────────────────────
 router.post("/examens", ...validate(ExaenDto.ValidateCreateExam()), AdminController.CreateExamen);
