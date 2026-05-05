@@ -15,7 +15,6 @@ router.post('/forgot-password',authController.ForgotPassword);
 router.post('/resend-otp-code',authController.ResendOtp);
 router.use(AuthMiddleware.protect)
 router.post('/verify', authController.VerifierOtp);
-
 router.post('/reset-password',authController.ResetPassword);
 
 
