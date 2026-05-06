@@ -4,98 +4,100 @@ import jwt from "jsonwebtoken";
 import { contactTemplate } from "../services/templates/Mail/contactUs.js";
 import { sendMailContact } from "../config/mailer.js";
 import { connection } from "../config/redis.js";
+import validateCnib from "../utils/verifyCnib.js";
+import ValidatePhone from "../utils/verifyNumber.js";
 
-function ValidatePhone(value) {
-  if (!value) return { valid: false, message: "Numéro requis" };
-  const cleaned = value.replace(/\s+/g, "");
-  const match = cleaned.match(/^(\+?226)?(\d{8})$/);
-  if (!match) {
-    return {
-      valid: false,
-      message: "Numéro invalide. Ex : 70000000 ou +22670000000",
-    };
-  }
-  const local = match[2];
-  return { valid: true, formatted: `226${local}` };
-}
-function validateCnib(numero_cnib, date_delivrance) {
-  const expirationYears = 10;
-  const firstletter = "B";
+// function ValidatePhone(value) {
+//   if (!value) return { valid: false, message: "Numéro requis" };
+//   const cleaned = value.replace(/\s+/g, "");
+//   const match = cleaned.match(/^(\+?226)?(\d{8})$/);
+//   if (!match) {
+//     return {
+//       valid: false,
+//       message: "Numéro invalide. Ex : 70000000 ou +22670000000",
+//     };
+//   }
+//   const local = match[2];
+//   return { valid: true, formatted: `226${local}` };
+// }
+// function validateCnib(numero_cnib, date_delivrance) {
+//   const expirationYears = 10;
+//   const firstletter = "B";
 
-  const response = {
-    error: false,
-    success: false,
-    message: null,
-    year: null,
-  };
+//   const response = {
+//     error: false,
+//     success: false,
+//     message: null,
+//     year: null,
+//   };
 
-  if (!numero_cnib) {
-    response.error = true;
-    response.message = "le numero de cnib ne doit pas etre vide";
-    return response;
-  }
+//   if (!numero_cnib) {
+//     response.error = true;
+//     response.message = "le numero de cnib ne doit pas etre vide";
+//     return response;
+//   }
 
-  if (!date_delivrance) {
-    response.error = true;
-    response.message = "la date de delivrance ne doit pas etre vide";
-    return response;
-  }
+//   if (!date_delivrance) {
+//     response.error = true;
+//     response.message = "la date de delivrance ne doit pas etre vide";
+//     return response;
+//   }
 
-  const deliveryDate = new Date(date_delivrance);
+//   const deliveryDate = new Date(date_delivrance);
 
-  if (isNaN(deliveryDate)) {
-    response.error = true;
-    response.message = "date de delivrance invalide";
-    return response;
-  }
+//   if (isNaN(deliveryDate)) {
+//     response.error = true;
+//     response.message = "date de delivrance invalide";
+//     return response;
+//   }
 
-  if (deliveryDate > new Date()) {
-    response.error = true;
-    response.message = "Votre carte d'identité nationale burkibe a un probleme";
-    return response;
-  }
+//   if (deliveryDate > new Date()) {
+//     response.error = true;
+//     response.message = "Votre carte d'identité nationale burkibe a un probleme";
+//     return response;
+//   }
 
-  const expirationDate = new Date(deliveryDate);
-  expirationDate.setFullYear(expirationDate.getFullYear() + expirationYears);
+//   const expirationDate = new Date(deliveryDate);
+//   expirationDate.setFullYear(expirationDate.getFullYear() + expirationYears);
 
-  response.year = expirationDate;
+//   response.year = expirationDate;
 
-  if (expirationDate < new Date()) {
-    response.error = true;
-    response.message = "Votre carte d'identité nationale burkinabè a expiré";
-    return response;
-  }
+//   if (expirationDate < new Date()) {
+//     response.error = true;
+//     response.message = "Votre carte d'identité nationale burkinabè a expiré";
+//     return response;
+//   }
 
-  if (typeof numero_cnib !== "string") {
-    response.error = true;
-    response.message = 'le numero de cnib doit etre en chaine de caractere"';
-    return response;
-  }
+//   if (typeof numero_cnib !== "string") {
+//     response.error = true;
+//     response.message = 'le numero de cnib doit etre en chaine de caractere"';
+//     return response;
+//   }
 
-  const first = numero_cnib.trim()[0];
-  if (!first) {
-    response.error = true;
-    response.message = 'le numero de cnib doit commencer par la lettre "B"';
-    return response;
-  }
-  if (first.toUpperCase() !== firstletter) {
-    response.error = true;
-    response.message = 'le numero de cnib doit commencer par la lettre "B"';
-    return response;
-  }
+//   const first = numero_cnib.trim()[0];
+//   if (!first) {
+//     response.error = true;
+//     response.message = 'le numero de cnib doit commencer par la lettre "B"';
+//     return response;
+//   }
+//   if (first.toUpperCase() !== firstletter) {
+//     response.error = true;
+//     response.message = 'le numero de cnib doit commencer par la lettre "B"';
+//     return response;
+//   }
 
-  const regex = /^B\d{7,}$/;
-  if (!regex.test(numero_cnib)) {
-    response.error = true;
-    response.message = "le numero de cnib est incorrect. Veuillez ressaisir";
-    return response;
-  }
+//   const regex = /^B\d{7,}$/;
+//   if (!regex.test(numero_cnib)) {
+//     response.error = true;
+//     response.message = "le numero de cnib est incorrect. Veuillez ressaisir";
+//     return response;
+//   }
 
-  response.success = true;
-  response.message = "le cnib est valide, verification en cours";
+//   response.success = true;
+//   response.message = "le cnib est valide, verification en cours";
 
-  return response;
-}
+//   return response;
+// }
 
 export class AuthController {
   constructor(notificationService) {

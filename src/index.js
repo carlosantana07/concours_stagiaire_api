@@ -15,12 +15,12 @@ import paiementRoutes from "./routes/paiement.route.js";
 import concoursRoutes from "./routes/concours.route.js";
 import { limiter } from "./middleware/rateLimiter.js";
 
-import { ensureBucketExists } from "./config/minio.js";
+// import { ensureBucketExists } from "./config/minio.js";
 import { UpdateStatusConcours } from './cron/Cron.js';
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-await ensureBucketExists('e-concours');
+// await ensureBucketExists('e-concours');
 
 app.use(cors());
 app.use(helmet());
@@ -46,6 +46,7 @@ app.use((err, req, res, next) => {
   return res.status(500).json({ error: 'Une erreur interne est survenue' });
 });
 
+// ici je vais mettre les cron  pour les taches automatiques 
 
 UpdateStatusConcours();
 

@@ -7,6 +7,8 @@ import {
 } from "../services/Upload-file.service.js";
 import { connection as redis } from "../config/redis.js";
 import { to } from "../utils/to.js";
+import ValidatePhone from "../utils/verifyNumber.js";
+import validateCnib from "../utils/verifyCnib.js";
 
 async function invaliderCache(prefixe, nbPages = 10) {
   for (let page = 1; page <= nbPages; page++) {
@@ -725,18 +727,16 @@ export class AdminController {
       where: {
         id_candidat: id_candidat,
       },
-      include:{
-        concours:{
-          include:{
-            categorie:true
-          }
+      include: {
+        concours: {
+          include: {
+            categorie: true,
+          },
         },
-        centre:true,
-        paiement:true
-        
-      }
+        centre: true,
+        paiement: true,
+      },
     });
-
 
     // trier si le candidat est direct on enleve certain champs
     let candid;
@@ -758,40 +758,53 @@ export class AdminController {
     return res.status(200).json({ resp });
   }
 
-  static async UpdateCandidat(req,res){
-    const {id_candidat} = req.params;
+  static async UpdateCandidat(req, res) {
+    const { id_candidat } = req.params;
 
-    const {email,nom_jeune_fille, telephone, mot_de_passe, emploi, ministere, matricule} = req.body;
+    const {
+      email,
+      nom_jeune_fille,
+      telephone,
+      mot_de_passe,
+      emploi,
+      ministere,
+      matricule,
+    } = req.body;
 
-    if(!id_candidat) return res.status(400).json({error: 'les references du candidats sont manquantes'});
+    if (!id_candidat)
+      return res
+        .status(400)
+        .json({ error: "les references du candidats sont manquantes" });
 
     const candidat = await prisma.candidat.findUnique({
-      where:{
-        id_candidat
-      }
+      where: {
+        id_candidat,
+      },
     });
 
-    if(!candidat){
-      return res.status(404).json({error: 'aucun candidat associer a cette reference'})
+    if (!candidat) {
+      return res
+        .status(404)
+        .json({ error: "aucun candidat associer a cette reference" });
     }
 
-    // mettre a jour le candidat 
+    // mettre a jour le candidat
 
-    await  prisma.$transaction (async(tx)=>{
+    await prisma.$transaction(async (tx) => {
       const UpdateCandidat = await tx.candidat.update({
-        where:{
-          id_candidat: candidat.id_candidat
+        where: {
+          id_candidat: candidat.id_candidat,
         },
 
-        data:{
+        data: {
           email: email ?? candidat.email,
           nom_jeune_fille: nom_jeune_fille ?? candidat.nom_jeune_fille,
           telephone: telephone ?? candidat.telephone,
           mot_de_passe: mot_de_passe ?? candidat.mot_de_passe,
           emploi: emploi ?? candidat.emploi,
-          ministere : ministere ?? candidat.ministere,
-          matricule: matricule ?? candidat.matricule
-        }
+          ministere: ministere ?? candidat.ministere,
+          matricule: matricule ?? candidat.matricule,
+        },
       });
 
       return UpdateCandidat;
@@ -801,11 +814,104 @@ export class AdminController {
 
     await redis.del(cacheKey);
 
-    return res.status(200).json({message: 'les informations du candidats ont ete mise a jour'});
-
+    return res
+      .status(200)
+      .json({ message: "les informations du candidats ont ete mise a jour" });
   }
 
+  static async Register(req, res) {
+    try {
+      const {
+        nom,
+        prenom,
+        nom_jeune_fille,
+        sexe,
+        date_naissance,
+        lieu_naissance,
+        pays_naissance,
+        numero_cnib,
+        date_delivrance,
+        telephone,
+        email,
+        mot_de_passe,
+        matricule,
+        emploi,
+        ministere,
+        statusCompte,
+      } = req.body;
 
+      // Validation et formatage du téléphone
+      const { valid, formatted, message } = ValidatePhone(telephone);
+      if (!valid) return res.status(400).json({ error: message });
+
+      // Vérifier les doublons
+      const conditions = [{ numero_cnib }, { telephone: formatted }];
+      if (email) conditions.push({ email });
+
+      const existant = await prisma.candidat.findFirst({
+        where: { OR: conditions },
+      });
+
+      // validation du cnib
+
+      const cni = numero_cnib.trim();
+
+      const response = validateCnib(cni, date_delivrance);
+
+      if (response.error) {
+        return res.status(400).json(response);
+      }
+
+      // verifier le status qui dois etre parmis
+      const status = ["ACTIF", "INACTIF", "SUSPENDU"];
+      if (!status.includes(statusCompte)) {
+        return res
+          .status(400)
+          .json({ error: "le status du compte n'est pas valide " });
+      }
+
+      if (existant) {
+        let msg = "Numéro CNIB déjà utilisé";
+        if (existant.telephone === formatted) msg = "Téléphone déjà utilisé";
+        if (email && existant.email === email) msg = "Email déjà utilisé";
+        return res.status(409).json({ error: msg });
+      }
+
+      const motDePasseHashe = await bcrypt.hash(mot_de_passe, 10);
+
+      const candidat = await prisma.candidat.create({
+        data: {
+          nom,
+          prenom,
+          nom_jeune_fille: nom_jeune_fille ?? null,
+          sexe,
+          date_naissance: new Date(date_naissance),
+          lieu_naissance,
+          pays_naissance,
+          numero_cnib,
+          date_delivrance: date_delivrance ? new Date(date_delivrance) : null,
+          telephone: formatted,
+          email: email ?? null,
+          mot_de_passe: motDePasseHashe,
+          statut_compte: statusCompte,
+          type_candidat: matricule ? "PROFESSIONNEL" : "DIRECT",
+          matricule: matricule ?? null,
+          emploi: emploi ?? null,
+          ministere: ministere ?? null,
+        },
+      });
+
+      return res.status(201).json({
+        message: "le compte candidat a ete creer avec succes ",
+      });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({
+          error: "Une erreur est survenue lors de la creation du candidat",
+        });
+    }
+  }
 
   static async ListesPaiements(req, res) {
     const {
