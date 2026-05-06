@@ -13,6 +13,9 @@ router.post('/register', CandidatDto.validateRegister(), ValidateRequest.handle,
 router.post('/contact-us',CandidatDto.ValidateContactUs(),ValidateRequest.handle,authController.ContactUS)
 router.post('/forgot-password',authController.ForgotPassword);
 router.post('/resend-otp-code',authController.ResendOtp);
+
+// routees de test pour la validiter du cnib ...
+router.post('/verify-cnib',authController.VerifieCnib)
 router.use(AuthMiddleware.protect)
 router.post('/verify', authController.VerifierOtp);
 
@@ -20,4 +23,4 @@ router.post('/reset-password',authController.ResetPassword);
 
 
 
-export default router;
+export default router;  

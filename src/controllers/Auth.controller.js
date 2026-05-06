@@ -1,37 +1,131 @@
-import { prisma }          from "../prisma.js";
-import bcrypt              from "bcrypt";
-import jwt                 from "jsonwebtoken";
+import { prisma } from "../prisma.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { contactTemplate } from "../services/templates/Mail/contactUs.js";
 import { sendMailContact } from "../config/mailer.js";
-import { connection }      from "../config/redis.js";
+import { connection } from "../config/redis.js";
 
 function ValidatePhone(value) {
   if (!value) return { valid: false, message: "Numéro requis" };
   const cleaned = value.replace(/\s+/g, "");
-  const match   = cleaned.match(/^(\+?226)?(\d{8})$/);
+  const match = cleaned.match(/^(\+?226)?(\d{8})$/);
   if (!match) {
     return {
-      valid:   false,
+      valid: false,
       message: "Numéro invalide. Ex : 70000000 ou +22670000000",
     };
   }
   const local = match[2];
   return { valid: true, formatted: `226${local}` };
 }
+function validateCnib(numero_cnib, date_delivrance) {
+  const expirationYears = 10;
+  const firstletter = "B";
+
+  const response = {
+    error: false,
+    success: false,
+    message: null,
+    year: null,
+  };
+
+  if (!numero_cnib) {
+    response.error = true;
+    response.message = "le numero de cnib ne doit pas etre vide";
+    return response;
+  }
+
+  if (!date_delivrance) {
+    response.error = true;
+    response.message = "la date de delivrance ne doit pas etre vide";
+    return response;
+  }
+
+  const deliveryDate = new Date(date_delivrance);
+
+  if (isNaN(deliveryDate)) {
+    response.error = true;
+    response.message = "date de delivrance invalide";
+    return response;
+  }
+
+  if (deliveryDate > new Date()) {
+    response.error = true;
+    response.message = "Votre carte d'identité nationale burkibe a un probleme";
+    return response;
+  }
+
+  const expirationDate = new Date(deliveryDate);
+  expirationDate.setFullYear(expirationDate.getFullYear() + expirationYears);
+
+  response.year = expirationDate;
+
+  if (expirationDate < new Date()) {
+    response.error = true;
+    response.message = "Votre carte d'identité nationale burkinabè a expiré";
+    return response;
+  }
+
+  if (typeof numero_cnib !== "string") {
+    response.error = true;
+    response.message = 'le numero de cnib doit etre en chaine de caractere"';
+    return response;
+  }
+
+  const first = numero_cnib.trim()[0];
+  if (!first) {
+    response.error = true;
+    response.message = 'le numero de cnib doit commencer par la lettre "B"';
+    return response;
+  }
+  if (first.toUpperCase() !== firstletter) {
+    response.error = true;
+    response.message = 'le numero de cnib doit commencer par la lettre "B"';
+    return response;
+  }
+
+  const regex = /^B\d{7,}$/;
+  if (!regex.test(numero_cnib)) {
+    response.error = true;
+    response.message = "le numero de cnib est incorrect. Veuillez ressaisir";
+    return response;
+  }
+
+  response.success = true;
+  response.message = "le cnib est valide, verification en cours";
+
+  return response;
+}
 
 export class AuthController {
   constructor(notificationService) {
     this.notificationService = notificationService;
 
-    this.Login          = this.Login.bind(this);
-    this.Register       = this.Register.bind(this);
-    this.VerifierOtp    = this.VerifierOtp.bind(this);
+    this.Login = this.Login.bind(this);
+    this.Register = this.Register.bind(this);
+    this.VerifierOtp = this.VerifierOtp.bind(this);
     this.ForgotPassword = this.ForgotPassword.bind(this);
-    this.ResetPassword  = this.ResetPassword.bind(this);
-    this.Logout         = this.Logout.bind(this);
-    this.ResendOtp      = this.ResendOtp.bind(this);
-    this.VerifieNumber  = this.VerifieNumber.bind(this);
-    this.ContactUS      = this.ContactUS.bind(this);
+    this.ResetPassword = this.ResetPassword.bind(this);
+    this.Logout = this.Logout.bind(this);
+    this.ResendOtp = this.ResendOtp.bind(this);
+    this.VerifieNumber = this.VerifieNumber.bind(this);
+    this.ContactUS = this.ContactUS.bind(this);
+    this.VerifieCnib = this.VerifieCnib.bind(this);
+  }
+
+  async VerifieCnib(req, res) {
+    const { cnib, dateD } = req.body;
+    const cni = cnib.trim();
+
+    const response = validateCnib(cni, dateD);
+
+    if (response.error) {
+      return res.status(400).json(response);
+    }
+
+    const message = response.message;
+
+    return res.status(200).json(response);
   }
 
   async VerifieNumber(req, res) {
@@ -40,8 +134,8 @@ export class AuthController {
       const { valid, formatted, message } = ValidatePhone(tel);
       if (!valid) return res.status(400).json({ error: message });
 
-      const cachekey   = `verif-${formatted}`;
-      const otp        = this.notificationService.genererOtp();
+      const cachekey = `verif-${formatted}`;
+      const otp = this.notificationService.genererOtp();
       const otp_expiration = new Date(Date.now() + 10 * 60 * 1000);
 
       const candidat = await prisma.candidat.findFirst({
@@ -54,7 +148,7 @@ export class AuthController {
 
       await prisma.candidat.update({
         where: { id_candidat: candidat.id_candidat },
-        data:  { otp, otp_expiration },
+        data: { otp, otp_expiration },
       });
 
       await connection.set(cachekey, otp, "EX", 600);
@@ -103,7 +197,6 @@ export class AuthController {
       );
 
       return res.status(200).json({ message: "Connexion réussie", token });
-
     } catch (err) {
       console.error(err);
       return res.status(500).json({ error: "Erreur serveur" });
@@ -113,10 +206,22 @@ export class AuthController {
   async Register(req, res) {
     try {
       const {
-        nom, prenom, nom_jeune_fille, sexe,
-        date_naissance, lieu_naissance, pays_naissance,
-        numero_cnib, date_delivrance, telephone, email,
-        mot_de_passe, matricule, emploi, ministere, choix,
+        nom,
+        prenom,
+        nom_jeune_fille,
+        sexe,
+        date_naissance,
+        lieu_naissance,
+        pays_naissance,
+        numero_cnib,
+        date_delivrance,
+        telephone,
+        email,
+        mot_de_passe,
+        matricule,
+        emploi,
+        ministere,
+        choix,
       } = req.body;
 
       // Validation et formatage du téléphone
@@ -131,6 +236,16 @@ export class AuthController {
         where: { OR: conditions },
       });
 
+      // validation du cnib
+
+      const cni = numero_cnib.trim();
+
+      const response = validateCnib(cni, date_delivrance);
+
+      if (response.error) {
+        return res.status(400).json(response);
+      }
+
       if (existant) {
         let msg = "Numéro CNIB déjà utilisé";
         if (existant.telephone === formatted) msg = "Téléphone déjà utilisé";
@@ -139,35 +254,36 @@ export class AuthController {
       }
 
       const motDePasseHashe = await bcrypt.hash(mot_de_passe, 10);
-      const otp             = this.notificationService.genererOtp();
-      const otp_expiration  = new Date(Date.now() + 10 * 60 * 1000);
-      const choixFinal      = !email ? "sms" : (choix ?? "sms");
+      const otp = this.notificationService.genererOtp();
+      const otp_expiration = new Date(Date.now() + 10 * 60 * 1000);
+      const choixFinal = !email ? "sms" : (choix ?? "sms");
 
       const candidat = await prisma.candidat.create({
         data: {
-          nom, prenom,
-          nom_jeune_fille:    nom_jeune_fille ?? null,
+          nom,
+          prenom,
+          nom_jeune_fille: nom_jeune_fille ?? null,
           sexe,
-          date_naissance:     new Date(date_naissance),
+          date_naissance: new Date(date_naissance),
           lieu_naissance,
           pays_naissance,
           numero_cnib,
-          date_delivrance:    date_delivrance ? new Date(date_delivrance) : null,
-          telephone:          formatted, 
-          email:              email ?? null,
-          mot_de_passe:       motDePasseHashe,
-          statut_compte:      "INACTIF",
-          type_candidat:      matricule ? "PROFESSIONNEL" : "DIRECT",
-          matricule:          matricule ?? null,
-          emploi:             emploi    ?? null,
-          ministere:          ministere ?? null,
+          date_delivrance: date_delivrance ? new Date(date_delivrance) : null,
+          telephone: formatted,
+          email: email ?? null,
+          mot_de_passe: motDePasseHashe,
+          statut_compte: "INACTIF",
+          type_candidat: matricule ? "PROFESSIONNEL" : "DIRECT",
+          matricule: matricule ?? null,
+          emploi: emploi ?? null,
+          ministere: ministere ?? null,
           choix_notification: choixFinal,
           otp,
           otp_expiration,
         },
       });
 
-      this.notificationService.email     = candidat.email;
+      this.notificationService.email = candidat.email;
       this.notificationService.telephone = candidat.telephone;
 
       if (choixFinal === "sms") {
@@ -183,16 +299,18 @@ export class AuthController {
       );
 
       return res.status(201).json({
-        message: choixFinal === "sms"
-          ? "Compte créé — OTP envoyé par SMS"
-          : "Compte créé — OTP envoyé par email",
+        message:
+          choixFinal === "sms"
+            ? "Compte créé — OTP envoyé par SMS"
+            : "Compte créé — OTP envoyé par email",
         candidat: { nom: candidat.nom, prenom: candidat.prenom, token },
       });
-
     } catch (err) {
       console.error(err);
       if (err.code === "P2002") {
-        return res.status(409).json({ error: "Email, téléphone ou CNIB déjà utilisé" });
+        return res
+          .status(409)
+          .json({ error: "Email, téléphone ou CNIB déjà utilisé" });
       }
       return res.status(500).json({ error: "Erreur serveur" });
     }
@@ -200,7 +318,7 @@ export class AuthController {
 
   async VerifierOtp(req, res) {
     try {
-      const { otp }         = req.body;
+      const { otp } = req.body;
       const { id_candidat } = req.user;
 
       const candidat = await prisma.candidat.findUnique({
@@ -223,13 +341,12 @@ export class AuthController {
 
       await prisma.candidat.update({
         where: { id_candidat },
-        data:  { statut_compte: "ACTIF", otp: null, otp_expiration: null },
+        data: { statut_compte: "ACTIF", otp: null, otp_expiration: null },
       });
 
       return res.status(200).json({
         message: "Vérification réussie, vous pouvez vous connecter",
       });
-
     } catch (err) {
       console.error(err);
       return res.status(500).json({ error: "Erreur serveur" });
@@ -252,15 +369,15 @@ export class AuthController {
         return res.status(404).json({ error: "Candidat introuvable" });
       }
 
-      const otp            = this.notificationService.genererOtp();
+      const otp = this.notificationService.genererOtp();
       const otp_expiration = new Date(Date.now() + 10 * 60 * 1000);
 
       await prisma.candidat.update({
         where: { id_candidat: candidat.id_candidat },
-        data:  { otp, otp_expiration },
+        data: { otp, otp_expiration },
       });
 
-      this.notificationService.email     = candidat.email;
+      this.notificationService.email = candidat.email;
       this.notificationService.telephone = candidat.telephone;
 
       if (candidat.choix_notification === "sms") {
@@ -276,31 +393,32 @@ export class AuthController {
       );
 
       return res.status(200).json({
-        message: candidat.choix_notification === "sms"
-          ? "OTP renvoyé par SMS"
-          : "OTP renvoyé par email",
+        message:
+          candidat.choix_notification === "sms"
+            ? "OTP renvoyé par SMS"
+            : "OTP renvoyé par email",
         token,
       });
-
     } catch (err) {
       console.error(err);
       return res.status(500).json({ error: "Erreur serveur" });
     }
   }
 
-async ForgotPassword(req, res) {
+  async ForgotPassword(req, res) {
     try {
       const { email, telephone, choix } = req.body;
 
       let candidat;
 
-      
-      const {formatted,valid,message} = ValidatePhone(telephone)
-      if(!valid){
-        return res.status().json(message)
+      const { formatted, valid, message } = ValidatePhone(telephone);
+      if (!valid) {
+        return res.status().json(message);
       }
       if (formatted && choix === "sms") {
-        candidat = await prisma.candidat.findFirst({ where: { telephone:formatted } });
+        candidat = await prisma.candidat.findFirst({
+          where: { telephone: formatted },
+        });
       } else {
         candidat = await prisma.candidat.findUnique({ where: { email } });
       }
@@ -354,7 +472,7 @@ async ForgotPassword(req, res) {
     }
   }
 
-async ResetPassword(req, res) {
+  async ResetPassword(req, res) {
     const { mot_de_passe, otp } = req.body;
     const { id_candidat } = req.user;
     const candidat = await prisma.candidat.findUnique({
@@ -399,7 +517,7 @@ async ResetPassword(req, res) {
       const { email, message, nom } = req.body;
       const html = contactTemplate({ nom, email, message });
       await sendMailContact({
-        to:      process.env.MAIL_USER,
+        to: process.env.MAIL_USER,
         subject: "Nouveau message de contact",
         html,
         email,
