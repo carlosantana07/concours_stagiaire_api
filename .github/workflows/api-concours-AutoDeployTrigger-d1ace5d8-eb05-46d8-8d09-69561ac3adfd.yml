@@ -1,0 +1,49 @@
+name: Trigger auto deployment for api-concours
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ feature-backup ]
+    paths:
+    - '**'
+    - '.github/workflows/api-concours-AutoDeployTrigger-d1ace5d8-eb05-46d8-8d09-69561ac3adfd.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.APICONCOURS_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.APICONCOURS_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.APICONCOURS_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: 
+          registryUsername: ${{ secrets.APICONCOURS_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.APICONCOURS_REGISTRY_PASSWORD }}
+          containerAppName: api-concours
+          resourceGroup: TESTPLATEFORMS
+          imageToBuild: default/[parameters('containerAppName')]:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
