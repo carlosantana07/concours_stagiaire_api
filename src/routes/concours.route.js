@@ -7,6 +7,8 @@ const router = Router();
 
 
 router.get("/", ConcoursController.GetCategorieConcours);
+// router.get("/search", ConcoursController.SearchConcours);
+router.get("/getallconcours", ConcoursController.GetAllConcours);
 router.get("/detail/:id", ConcoursController.DetailConcours);
 
 // Liste des catégories

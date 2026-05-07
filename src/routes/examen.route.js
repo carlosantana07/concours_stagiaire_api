@@ -3,17 +3,11 @@ import { ExamenController } from "../controllers/Examen.controller.js";
 import { AuthMiddleware }   from "../middleware/AuthMiddleware.js";
 
 const router = Router();
-const ctrl   = new ExamenController();
 
 router.use(AuthMiddleware.protect);
 
-// Examens d'un concours
-router.get("/concours/:id_concours", (req, res) => ctrl.getExamensDuConcours(req, res));
-
-// Détail d'un examen + mon résultat
-router.get("/detail/:id_examen",     (req, res) => ctrl.getExamen(req, res));
-
-// Tous mes résultats groupés par concours
-router.get("/mes-resultats",         (req, res) => ctrl.getMesResultats(req, res));
+router.get("/concours/:id_concours", ExamenController.getExamensDuConcours);
+router.get("/detail/:id_examen",     ExamenController.getExamen);
+router.get("/mes-resultats",         ExamenController.getMesResultats);
 
 export default router;

@@ -23,7 +23,7 @@ router.get("/dashboard", AdminController.Dashboard);
 
 // ─── Concours ───────────────────────────────────────────────────
 router.post("/create-concours", AdminController.CreateConcours);
-router.get("/concours/:id_concours", AdminController.DetailConcours);
+router.get("/concours/detail/:id_concours", AdminController.DetailConcours);
 router.put("/concours/:id_concours", AdminController.UpdateConcours);
 router.delete("/concours/:id_concours", AdminController.DeleteConcours);
 router.get("/concours/search", AdminController.SearchConcours);
@@ -42,14 +42,13 @@ router.delete("/categories/:id_categorie", AdminController.DeleteCategorie);
 
 // ─── Paiements ──────────────────────────────────────────────────
 router.get("/paiements", AdminController.ListesPaiements);
-router.get("/paiements/:id", AdminController.DetailPaiement);
-router.put("/paiements/:id/status", AdminController.UpdatePaiementStatus);
+router.get("/paiements/:id_paiement", AdminController.DetailPaiement);
+router.put("/paiements/:id_paiement/status", AdminController.UpdatePaiementStatus);
 
 // ─── Candidats ──────────────────────────────────────────────────
 router.get("/candidats/search", AdminController.SearchCandidat);
-router.get("/candidats",AdminController.GetAllCandidat);
-router.get('/candidat/detail/:id_candidat',AdminController.DetailCandidat)
-router.delete('/candidat/delete-candidat',AdminController.DeleteCandidat)
+router.delete("/candidats/:id_candidat", AdminController.DeleteCandidat);
+
 
 // ─── Examens ────────────────────────────────────────────────────
 router.post("/examens", ...validate(ExaenDto.ValidateCreateExam()), AdminController.CreateExamen);

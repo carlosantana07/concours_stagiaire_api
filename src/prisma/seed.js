@@ -112,54 +112,69 @@ async function main() {
   console.log(`✅ ${categories.length} catégories prêtes`);
 
   // ── CONCOURS ───────────────────────────────────────────────
-  const concoursData = [
-    {
-      nom:               "Concours Agents de Santé 2025",
-      type:              "DIRECT",
-      description:       "Recrutement d'agents paramédicaux pour les hôpitaux nationaux.",
-      frais_inscription: 5000,
-      nombre_postes:     200,
-      annee:             2025,
-      date_debut:        new Date("2025-03-01"),
-      date_fin:          new Date("2025-04-30"),
-      statut_concours:   "OUVERT",
-      categorieId:       categories[2].id,
-      centreIds:         centres.map(c => c.id_centre),
-    },
-    {
-      nom:               "Concours Enseignants du Primaire 2026",
-      type:              "DIRECT",
-      description:       "Recrutement d'instituteurs pour les écoles primaires publiques.",
-      frais_inscription: 3000,
-      nombre_postes:     500,
-      annee:             2026,
-      date_debut:        new Date("2026-05-01"),
-      date_fin:          new Date("2026-06-30"),
-      statut_concours:   "OUVERT",
-      categorieId:       categories[3].id,
-      centreIds:         centres.map(c => c.id_centre),
-    },
-  ];
+  const TYPES = ["DIRECT", "PROFESSIONNEL"];
 
-  const concoursList = [];
-  for (const { centreIds, ...fields } of concoursData) {
-    let concours = await prisma.concours.findFirst({ where: { nom: fields.nom } });
-    if (!concours) {
-      concours = await prisma.concours.create({
-        data: {
-          ...fields,
-          id_admin: admin.id_admin,
-          centres: {
-            create: centreIds.map(id_centre => ({
-              centre: { connect: { id_centre } },
-            })),
-          },
+const NOMS_CONCOURS = [
+  "Agents de Santé", "Infirmiers d'État", "Sages-femmes",
+  "Instituteurs Adjoints", "Professeurs Certifiés",
+  "Inspecteurs des Impôts", "Agents des Douanes",
+  "Sous-officiers Militaires", "Gardiens de la Paix",
+  "Agents des Eaux et Forêts", "Greffiers", "Magistrats",
+  "Techniciens Informatiques", "Secrétaires Administratifs",
+  "Agents des Travaux Publics", "Contrôleurs du Trésor",
+  "Agents de l'Agriculture", "Agents de l'Élevage",
+  "Techniciens de Laboratoire", "Agents de la Protection Civile",
+];
+
+const concoursData = [];
+
+for (let i = 0; i < 20; i++) {
+  const categorie = rand(categories);
+  const centresChoisis = centres
+    .sort(() => 0.5 - Math.random())
+    .slice(0, randInt(2, centres.length));
+
+  const annee = randInt(2024, 2027);
+
+  concoursData.push({
+    nom: `${NOMS_CONCOURS[i]} ${annee}`,
+    type: rand(TYPES),
+    description: `Concours organisé par le ministère lié à ${categorie.libelle}.`,
+    frais_inscription: randInt(2000, 10000),
+    nombre_postes: randInt(50, 1000),
+    annee,
+    date_debut: genererDate(annee, annee),
+    date_fin: genererDate(annee, annee),
+    statut_concours: "OUVERT",
+    categorieId: categorie.id,
+    centreIds: centresChoisis.map(c => c.id_centre),
+  });
+}
+const concoursList = [];
+
+for (const { centreIds, ...fields } of concoursData) {
+  let concours = await prisma.concours.findFirst({
+    where: { nom: fields.nom },
+  });
+
+  if (!concours) {
+    concours = await prisma.concours.create({
+      data: {
+        ...fields,
+        id_admin: admin.id_admin,
+        centres: {
+          create: centreIds.map(id_centre => ({
+            centre: { connect: { id_centre } },
+          })),
         },
-      });
-    }
-    concoursList.push(concours);
+      },
+    });
   }
-  console.log(`✅ ${concoursList.length} concours prêts`);
+
+  concoursList.push(concours);
+}
+
+console.log(`✅ ${concoursList.length} concours prêts`);
 
   // ── CANDIDAT DE TEST ───────────────────────────────────────
   // déclaré avec let ici — c'est le fix principal

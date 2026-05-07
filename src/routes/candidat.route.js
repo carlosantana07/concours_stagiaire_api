@@ -9,10 +9,10 @@ const router = Router();
 router.use(AuthMiddleware.protect); 
 
 
-router.get("/profil",CandidatController.getProfil);
-router.put("/profil",CandidatController.updateProfil);
-// router.get("/candidatures",CandidatController.getMesCandidatures);
-// router.get("/recepisse/:id_inscription",CandidatController.getRecepisse);
-router.get("/resultats", CandidatController.getResultats);
-router.post('/documents',upload.array('documents', 5),CandidatController.uploadDocuments);
+router.get("/profil",                CandidatController.getProfil);
+router.put("/profil",                CandidatController.updateProfil);
+router.get("/mes-candidatures",      CandidatController.getMesCandidatures);
+router.get("/resultats",             CandidatController.getResultats);
+router.post("/recepisse",            CandidatController.getRecepisse);
+router.post("/documents",            CandidatController.uploadDocuments);
 export default router;

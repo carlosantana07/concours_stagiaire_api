@@ -1009,7 +1009,7 @@ export class AdminController {
   }
 
   static async DetailPaiement(req, res) {
-    const id_paiement = parseInt(req.query.id_paiement);
+    const id_paiement = parseInt(req.params.id_paiement);
 
     if (isNaN(id_paiement)) {
       return res.status(400).json({ error: "id_paiement invalide" });
@@ -1056,7 +1056,7 @@ export class AdminController {
   }
 
   static async UpdatePaiementStatus(req, res) {
-    const id_paiement = parseInt(req.body.id_paiement);
+    const id_paiement = parseInt(req.params.id_paiement);
     const { id_candidat, statut_paiement } = req.body;
 
     if (isNaN(id_paiement)) {
