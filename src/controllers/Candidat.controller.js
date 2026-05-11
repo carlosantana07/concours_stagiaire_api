@@ -46,7 +46,10 @@ export class CandidatController {
       },
     });
 
-     candidat.date_naissance = candidat.date_naissance.toLocaleDateString("fr-FR")
+     candidat.date_naissance = candidat.date_naissance.toLocaleDateString("fr-FR");
+     const status = candidat.statut_compte ==='ACTIF';
+
+     
 
     if (!candidat) {
       return res.status(404).json({ error: "Candidat introuvable" });
@@ -55,6 +58,7 @@ export class CandidatController {
     return res.status(200).json({
       message: "Profil récupéré",
       data:    candidat,
+      status: status
     });
   }
 
