@@ -6,6 +6,7 @@ import { AdminMiddleware } from "../middleware/Admin.Middleware.js";
 import { ConcoursDto } from "../Dtos/ConcoursDto.js";
 import { CategorieDto } from "../Dtos/CategorieDto.js";
 import { ExaenDto } from "../Dtos/ExamenDto.js";
+import { upload } from "../middleware/upload.middleware.js";
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ const validate = (dto) => [dto, ValidateRequest.handle];
 // ─── Routes ───────────────────────────────────────────
 router.post("/login", ...validate(AdminDto.ValidateLogin()), AdminController.Login);
 router.post("/register", ...validate(AdminDto.ValidateRegister()), AdminController.Register);
-
+router.post("/upload-exam-question", upload.single("file"), AdminController.UploadsExamresponse);
 // ─── Middleware auth ─────────────
 router.use(AdminMiddleware.handle);
 

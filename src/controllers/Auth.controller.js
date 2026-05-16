@@ -357,7 +357,7 @@ export class AuthController {
 
   async ResendOtp(req, res) {
     try {
-      const { email, telephone } = req.body;
+      const { email, telephone ,choix } = req.body;
 
       if (!email && !telephone) {
         return res.status(400).json({ error: "Email ou téléphone requis" });
@@ -382,7 +382,7 @@ export class AuthController {
       this.notificationService.email = candidat.email;
       this.notificationService.telephone = candidat.telephone;
 
-      if (candidat.choix_notification === "sms") {
+      if (choix === "sms") {
         await this.notificationService.envoyerOtpTelephone(otp);
       } else {
         await this.notificationService.envoyerOtpEmail(otp);

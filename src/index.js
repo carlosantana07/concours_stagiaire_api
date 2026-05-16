@@ -34,7 +34,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/payment", paiementRoutes);
 app.use("/api/concours", concoursRoutes);
 
-swaggerDocs(app, PORT);
+// swaggerDocs(app, PORT);
 
 app.get("/", (req, res) => {
   res.send("API e-concours opérationnelle");

@@ -9,6 +9,10 @@ import { connection as redis } from "../config/redis.js";
 import { to } from "../utils/to.js";
 import ValidatePhone from "../utils/verifyNumber.js";
 import validateCnib from "../utils/verifyCnib.js";
+import xlsx from 'xlsx'
+import  path  from "path";
+import { response } from "express";
+import fs from'fs'
 
 async function invaliderCache(prefixe, nbPages = 10) {
   for (let page = 1; page <= nbPages; page++) {
@@ -1888,21 +1892,107 @@ export class AdminController {
     return res.status(200).json({ message: "Modification du centre reussi" });
   }
 
-  static async UploadsExamresponse() {
-    const { id_examen } = req.body;
-    const files = req.files;
 
-    if (!id_examen) {
-      return res
-        .status(400)
-        .json({ error: "les references de l'examen sont erronnes" });
-    }
-    if (!files || files.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "aucun fichier uploader veuillez inserer le document" });
+static async UploadsExamresponse(req, res) {
+  try {
+    // const { id_examen } = req.body;
+    const file = req.file;
+
+    // if (!id_examen) {
+    //   return res.status(400).json({
+    //     error: "les références de l'examen sont erronées",
+    //   });
+    // }
+
+    if (!file) {
+      return res.status(400).json({
+        error: "aucun fichier uploadé",
+      });
     }
 
-    // proceder a l'upload des fichiers
+    
+    const validExtension = ["xls", "xlsx", "xlsb", "xltx", "xltm", "csv"];
+
+    const extension = path
+      .extname(file.originalname)
+      .replace(".", "")
+      .toLowerCase();
+
+    if (!validExtension.includes(extension)) {
+      return res.status(400).json({
+        error: `Veuillez inserer un fichier Excel ${validExtension.join(", ")}`,
+      });
+    }
+
+      const workbook = xlsx.read(file.buffer, {
+      type: "buffer"
+    });
+
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    const data = xlsx.utils.sheet_to_json(sheet);
+
+    if (!data.length) {
+      return res.status(404).json({
+        error: "le fichier ne contient pas de contenu",
+      });
+    }
+
+    // console.log(data)
+  
+    const questions = data.map((item) => ({
+      question: item.question || item.Question,
+      responses: [item.R1, item.R2, item.R3, item.R4],
+      bonneRep: item.bonneRep || item.R4, 
+    }));
+
+ 
+    // si on ne connais pas le nombre de reponse a mettre.. on prend le cas ou la derniere reponse est la bonne
+
+
+    return res.status(200).json({
+      success: true,
+      count: questions.length,
+      questions,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: error.message,
+    });
   }
+}
+
+
+static async SortieResultat(req, res) {
+  // const {id_examen} = req.body;
+  // if(!id_examen) {
+  //   return res.status(400).json({error: 'Les references de  l\'examen sont manquantes'});
+  // }
+
+  // recuperer les questions et responses 
+
+  const exmanenResult = await prisma.examen.findFirst({where:{
+    id_examen:id_examen
+  }});
+
+  const data = {
+
+  }
+
+
+  const workbook = xlsx.utils.book_new();
+
+  const worksheet = xlsx.utils.json_to_sheet(exmanenResult);
+
+  xlsx.utils.book_append_sheet(workbook,worksheet,"reponses");
+
+  if(!fs.existsSync('./exports')){
+    fs.mkdirSync("./exports/responses.xls");
+  }
+
+  // permettre le telecharement du fichier
+  
+
+}
 }
