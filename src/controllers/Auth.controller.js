@@ -382,11 +382,14 @@ export class AuthController {
 
     let candidat;
 
-    const { formatted, valid, message } = ValidatePhone(telephone);
+
+  
+    if (telephone && choix === "sms") {
+        const { formatted, valid, message } = ValidatePhone(telephone);
     if (!valid) {
       return res.status().json(message);
     }
-    if (formatted && choix === "sms") {
+    
       candidat = await prisma.candidat.findFirst({
         where: { telephone: formatted },
       });
