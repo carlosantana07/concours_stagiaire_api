@@ -7,7 +7,7 @@ const { TypeDocument } = pkg;
 
 export class CandidatController {
 
-  // profil ────────────────────────────
+
   static async getProfil(req, res) {
     const { id_candidat } = req.user;
 
@@ -56,13 +56,12 @@ export class CandidatController {
     }
 
     return res.status(200).json({
-      message: "Profil récupéré",
       data:    candidat,
       status: status
     });
   }
 
-  // ─── profil ────────────────────────────
+
   static async updateProfil(req, res) {
     const { id_candidat } = req.user;
     const {
@@ -144,7 +143,7 @@ export class CandidatController {
     });
   }
 
-  // ─── mes-candidatures ─────────────────
+
 static async getMesCandidatures(req, res) {
   const { id_candidat } = req.user;
   const limit           = 5;
@@ -216,7 +215,6 @@ static async getMesCandidatures(req, res) {
   });
 
   return res.status(200).json({
-    message: "Candidatures récupérées",
     data,
     page,
     total,
@@ -224,7 +222,7 @@ static async getMesCandidatures(req, res) {
   });
 }
 
-  // ─── resultats ────────────────────────
+
   static async getResultats(req, res) {
     const { id_candidat } = req.user;
 
@@ -279,12 +277,12 @@ static async getMesCandidatures(req, res) {
     }, {});
 
     return res.status(200).json({
-      message: "Résultats récupérés",
+
       data:    Object.values(parConcours),
     });
   }
 
- // ─── recepisse ───────────────────────
+
 static async getRecepisse(req, res) {
   const { id_candidat } = req.user;
   const id_inscription  = parseInt(req.body.id_inscription);
@@ -362,7 +360,7 @@ static async getRecepisse(req, res) {
 
   await generateReceipt(data, res);
 }
-  // ───documents ───────────────────────
+
   static async uploadDocuments(req, res) {
     const { id_candidat } = req.user;
 

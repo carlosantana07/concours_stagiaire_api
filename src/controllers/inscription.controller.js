@@ -3,7 +3,7 @@ import { generateReceipt } from "../services/Upload-file.service.js";
 
 export class InscriptionController {
 
-  // ─── s'inscrire ───────────────────────────────
+
   static async sInscrire(req, res) {
     const { id_candidat } = req.user;
     const id_concours     = parseInt(req.body.id_concours);
@@ -111,7 +111,7 @@ export class InscriptionController {
     });
   }
 
-  // ─── id_inscription ────────────────
+
   static async getInscription(req, res) {
     const { id_candidat } = req.user;
     const id_inscription  = parseInt(req.params.id_inscription);

@@ -2,8 +2,9 @@ import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 import path from "path";
 import { fileURLToPath } from "url";
-
+import fs from "fs";
 import { getMinioClient } from '../config/minio.js'; 
+
 export const generateReceipt = async (data, res) => {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
@@ -539,9 +540,120 @@ export const GenererListCandidat = async (data, res) => {
 };
 
 
-export const GenererListConcours = async (data,res)=>{
-  
-}
+
+
+export const GenererListConcours = async (data, res) => {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+
+  const filePath = path.join(
+    __dirname,
+    `liste_concours_${Date.now()}.pdf`
+  );
+
+  const doc = new PDFDocument({
+    size: "A4",
+    margin: 40,
+  });
+
+  const stream = fs.createWriteStream(filePath);
+  doc.pipe(stream);
+
+  const PAGE_W = 595.28;
+  const MARGIN = 40;
+  const CONTENT_W = PAGE_W - MARGIN * 2;
+
+  const BLACK = "#000000";
+  const WHITE = "#ffffff";
+  const LIGHT = "#f2f2f2";
+  const BORDER = "#999999";
+
+  const ROW_H = 25;
+
+  const COLS = [
+    { label: "N°", x: MARGIN, w: 30 },
+    { label: "LIBELLE", x: MARGIN + 30, w: 160 },
+    { label: "TYPE", x: MARGIN + 190, w: 80 },
+    { label: "STATUT", x: MARGIN + 270, w: 90 },
+    { label: "POSTES", x: MARGIN + 360, w: 70 },
+    { label: "CATEGORIE", x: MARGIN + 430, w: CONTENT_W - 430 },
+  ];
+
+  // =========================
+  // TITRE
+  // =========================
+  doc
+    .fontSize(18)
+    .fillColor(BLACK)
+    .text("LISTE DES CONCOURS", {
+      align: "center",
+    });
+
+  doc.moveDown(2);
+
+  let y = doc.y;
+
+  // =========================
+  // HEADER TABLE
+  // =========================
+  COLS.forEach((col) => {
+    doc
+      .rect(col.x, y, col.w, ROW_H)
+      .fillAndStroke(LIGHT, BORDER);
+
+    doc
+      .fillColor(BLACK)
+      .fontSize(10)
+      .text(col.label, col.x + 5, y + 7, {
+        width: col.w - 10,
+        align: "center",
+      });
+  });
+
+  y += ROW_H;
+
+  // =========================
+  // DATA
+  // =========================
+  data.forEach((item, index) => {
+    const values = [
+      index + 1,
+      item.nom,
+      item.type,
+      item.statut_concours,
+      item.nombre_postes,
+      item.categorie?.libelle || "-",
+    ];
+
+    COLS.forEach((col, i) => {
+      doc
+        .rect(col.x, y, col.w, ROW_H)
+        .stroke(BORDER);
+
+      doc
+        .fillColor(BLACK)
+        .fontSize(9)
+        .text(String(values[i]), col.x + 5, y + 7, {
+          width: col.w - 10,
+          align: "center",
+        });
+    });
+
+    y += ROW_H;
+
+    // Nouvelle page si besoin
+    if (y > 760) {
+      doc.addPage();
+      y = 40;
+    }
+  });
+
+  doc.end();
+
+  stream.on("finish", () => {
+    return res.download(filePath);
+  });
+};
 
 
 

@@ -12,17 +12,22 @@ const router = express.Router();
 
 const validate = (dto) => [dto, ValidateRequest.handle];
 
-// ─── Routes ───────────────────────────────────────────
+
 router.post("/login", ...validate(AdminDto.ValidateLogin()), AdminController.Login);
 router.post("/register", ...validate(AdminDto.ValidateRegister()), AdminController.Register);
+
+
+router.get('/concours/listes',AdminController.ListesConcours);
 router.post("/upload-exam-question", upload.single("file"), AdminController.UploadsExamresponse);
-// ─── Middleware auth ─────────────
+router.get('/sorti-resultat',AdminController.SortieResultat);
+router.patch('/concours/auto-switch-status',AdminController.AutoSwitch);
+
 router.use(AdminMiddleware.handle);
 
-// ─── Dashboard ──────────────────────────────────────────────────
+
 router.get("/dashboard", AdminController.Dashboard);
 
-// ─── Concours ───────────────────────────────────────────────────
+
 router.post("/create-concours", AdminController.CreateConcours);
 router.get("/concours/detail/:id_concours", AdminController.DetailConcours);
 router.put("/concours/:id_concours", AdminController.UpdateConcours);
@@ -31,27 +36,27 @@ router.get("/concours/search", AdminController.SearchConcours);
 router.get("/concours", AdminController.GetAllConcours);
 router.post("/concours/:id_concours/switch-status", AdminController.SwitchStatuConcours);
 
-// ─── Centres ────────────────────────────────────────────────────
+
 router.post("/centres", ...validate(AdminDto.ValidateCreateCentre()), AdminController.CreateCentre);
 
-// ─── Catégories de concours ─────────────────────────────────────
+
 router.get("/categories", AdminController.GetCategorie);
 router.get("/categories/concours", AdminController.GetCategorieConcours);
 router.post("/categories", ...validate(CategorieDto.CreateCategorie()), AdminController.CreateCategorie);
 router.put("/categories/:id_categorie", ...validate(CategorieDto.UpdateCategorie()), AdminController.UpdateCategorieConcours);
 router.delete("/categories/:id_categorie", AdminController.DeleteCategorie);
 
-// ─── Paiements ──────────────────────────────────────────────────
+
 router.get("/paiements", AdminController.ListesPaiements);
 router.get("/paiements/:id_paiement", AdminController.DetailPaiement);
 router.put("/paiements/:id_paiement/status", AdminController.UpdatePaiementStatus);
 
-// ─── Candidats ──────────────────────────────────────────────────
+
 router.get("/candidats/search", AdminController.SearchCandidat);
 router.delete("/candidats/:id_candidat", AdminController.DeleteCandidat);
 
 
-// ─── Examens ────────────────────────────────────────────────────
+
 router.post("/examens", ...validate(ExaenDto.ValidateCreateExam()), AdminController.CreateExamen);
 router.get("/examens/concours/:id_concours", AdminController.GetExamensByConcours);
 router.get("/examens/:id_examen", AdminController.DetailExamen);

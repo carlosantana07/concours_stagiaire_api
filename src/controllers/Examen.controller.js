@@ -2,7 +2,7 @@ import { prisma } from "../prisma.js";
 
 export class ExamenController {
 
-  // ─── GET /api/examens/concours/:id_concours ───────────────
+
   static async getExamensDuConcours(req, res) {
     const id_concours = parseInt(req.params.id_concours);
 
@@ -50,7 +50,7 @@ export class ExamenController {
     });
   }
 
-  // ─── GET /api/examens/detail/:id_examen ──────────────────
+
   static async getExamen(req, res) {
     const { id_candidat } = req.user;
     const id_examen       = parseInt(req.params.id_examen);
@@ -112,7 +112,7 @@ export class ExamenController {
     });
   }
 
-  // ─── GET /api/examens/mes-resultats ──────────────────────
+
   static async getMesResultats(req, res) {
     const { id_candidat } = req.user;
 

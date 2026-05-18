@@ -6,8 +6,8 @@ const router = Router();
 
 router.use(AuthMiddleware.protect);
 
-router.get("/concours/:id_concours", ExamenController.getExamensDuConcours);
-router.get("/detail/:id_examen",     ExamenController.getExamen);
-router.get("/mes-resultats",         ExamenController.getMesResultats);
+router.get("/concours/:id_concours",ExamenController.getExamensDuConcours);
+router.get("/detail/:id_examen",ExamenController.getExamen);
+router.get("/mes-resultats",ExamenController.getMesResultats);
 
 export default router;

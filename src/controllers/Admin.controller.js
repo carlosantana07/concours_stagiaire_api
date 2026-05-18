@@ -4,15 +4,17 @@ import bcrypt from "bcrypt";
 import {
   generateReceipt,
   GenererListCandidat,
+  GenererListConcours,
 } from "../services/Upload-file.service.js";
 import { connection as redis } from "../config/redis.js";
 import { to } from "../utils/to.js";
 import ValidatePhone from "../utils/verifyNumber.js";
 import validateCnib from "../utils/verifyCnib.js";
-import xlsx from 'xlsx'
-import  path  from "path";
+import xlsx from "xlsx";
+import path from "path";
 import { response } from "express";
-import fs from'fs'
+import fs from "fs";
+import { type } from "os";
 
 async function invaliderCache(prefixe, nbPages = 10) {
   for (let page = 1; page <= nbPages; page++) {
@@ -507,6 +509,74 @@ export class AdminController {
     return res.status(200).json({ message: "Statut changé avec succès" });
   }
 
+  static async AutoSwitch(req, res) {
+    const id = Number(req.body.id_concours);
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: "ID invalide" });
+    }
+
+    const status = ["OUVERT", "FERMER", "ATTENTE"];
+    //                 0          1       2
+
+    console.log("id du concours :", id);
+    const concours = await prisma.concours.findFirst({
+      where: {
+        id_concours: id,
+      },
+    });
+
+    if (!concours) {
+      return res.status(404).json({ error: "Aucun concours trouve" });
+    }
+
+    let statusConcours = concours.statut_concours;
+
+    const isIncludes = status.includes(statusConcours);
+    console.log(isIncludes);
+    if (!isIncludes) {
+      return res
+        .status(400)
+        .json({
+          error:
+            "Le status du concours est errone, veuillez modifier manuellement",
+        });
+    }
+
+    const index = status.indexOf(statusConcours);
+
+    console.log(index);
+
+    switch (index) {
+      case 0:
+        statusConcours = status[1];
+        break;
+      case 1:
+        statusConcours = status[2];
+        break;
+      case 2:
+        statusConcours = status[0];
+        break;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.concours.update({
+        where: {
+          id_concours: concours.id_concours,
+        },
+        data: {
+          statut_concours: statusConcours,
+        },
+      });
+    });
+
+    return res
+      .status(200)
+      .json({
+        message: `Status mis a jour avec success ::index : ${index}  :: status ${statusConcours}`,
+      });
+  }
+
   static async SearchConcours(req, res) {
     const { type, nom, annee, date_debut, date_fin } = req.query;
 
@@ -909,11 +979,9 @@ export class AdminController {
         message: "le compte candidat a ete creer avec succes ",
       });
     } catch (err) {
-      return res
-        .status(500)
-        .json({
-          error: "Une erreur est survenue lors de la creation du candidat",
-        });
+      return res.status(500).json({
+        error: "Une erreur est survenue lors de la creation du candidat",
+      });
     }
   }
 
@@ -1892,107 +1960,126 @@ export class AdminController {
     return res.status(200).json({ message: "Modification du centre reussi" });
   }
 
+  static async UploadsExamresponse(req, res) {
+    try {
+      // const { id_examen } = req.body;
+      const file = req.file;
 
-static async UploadsExamresponse(req, res) {
-  try {
-    // const { id_examen } = req.body;
-    const file = req.file;
+      // if (!id_examen) {
+      //   return res.status(400).json({
+      //     error: "les références de l'examen sont erronées",
+      //   });
+      // }
 
-    // if (!id_examen) {
-    //   return res.status(400).json({
-    //     error: "les références de l'examen sont erronées",
-    //   });
-    // }
+      if (!file) {
+        return res.status(400).json({
+          error: "aucun fichier uploadé",
+        });
+      }
 
-    if (!file) {
-      return res.status(400).json({
-        error: "aucun fichier uploadé",
-      });
-    }
+      const validExtension = ["xls", "xlsx", "xlsb", "xltx", "xltm", "csv"];
 
-    
-    const validExtension = ["xls", "xlsx", "xlsb", "xltx", "xltm", "csv"];
+      const extension = path
+        .extname(file.originalname)
+        .replace(".", "")
+        .toLowerCase();
 
-    const extension = path
-      .extname(file.originalname)
-      .replace(".", "")
-      .toLowerCase();
-
-    if (!validExtension.includes(extension)) {
-      return res.status(400).json({
-        error: `Veuillez inserer un fichier Excel ${validExtension.join(", ")}`,
-      });
-    }
+      if (!validExtension.includes(extension)) {
+        return res.status(400).json({
+          error: `Veuillez inserer un fichier Excel ${validExtension.join(", ")}`,
+        });
+      }
 
       const workbook = xlsx.read(file.buffer, {
-      type: "buffer"
-    });
+        type: "buffer",
+      });
 
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
 
-    const data = xlsx.utils.sheet_to_json(sheet);
+      const data = xlsx.utils.sheet_to_json(sheet);
 
-    if (!data.length) {
-      return res.status(404).json({
-        error: "le fichier ne contient pas de contenu",
+      if (!data.length) {
+        return res.status(404).json({
+          error: "le fichier ne contient pas de contenu",
+        });
+      }
+
+      // console.log(data)
+
+      const questions = data.map((item) => ({
+        question: item.question || item.Question,
+        responses: [item.R1, item.R2, item.R3, item.R4],
+        bonneRep: item.bonneRep || item.R4,
+      }));
+
+      const responses = questions.map((d) => ({
+        question: d.question,
+        response: d.bonneRep,
+      }));
+
+      // si on ne connais pas le nombre de reponse a mettre.. on prend le cas ou la derniere reponse est la bonne
+
+      return res.status(200).json({
+        success: true,
+        count: questions.length,
+        questions,
+        responses,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: error.message,
       });
     }
+  }
 
-    // console.log(data)
-  
-    const questions = data.map((item) => ({
-      question: item.question || item.Question,
-      responses: [item.R1, item.R2, item.R3, item.R4],
-      bonneRep: item.bonneRep || item.R4, 
-    }));
-
- 
-    // si on ne connais pas le nombre de reponse a mettre.. on prend le cas ou la derniere reponse est la bonne
-
-
-    return res.status(200).json({
-      success: true,
-      count: questions.length,
-      questions,
+  static async ListesConcours(req, res) {
+    const concours = await prisma.concours.findMany({
+      select: {
+        nom: true,
+        nombre_postes: true,
+        categorie: {
+          select: {
+            libelle: true,
+          },
+        },
+        type: true,
+        statut_concours: true,
+      },
     });
-  } catch (error) {
-    return res.status(500).json({
-      error: error.message,
+
+    return res.json(concours);
+    // generer une listes des  concours avec les informations du pays etc...
+
+    // await GenererListConcours(concours,res)
+  }
+
+  static async SortieResultat(req, res) {
+    // const {id_examen} = req.body;
+    // if(!id_examen) {
+    //   return res.status(400).json({error: 'Les references de  l\'examen sont manquantes'});
+    // }
+
+    // recuperer les questions et responses
+
+    const exmanenResult = await prisma.examen.findFirst({
+      where: {
+        id_examen: id_examen,
+      },
     });
+
+    const data = {};
+
+    const workbook = xlsx.utils.book_new();
+
+    const worksheet = xlsx.utils.json_to_sheet(exmanenResult);
+
+    xlsx.utils.book_append_sheet(workbook, worksheet, "reponses");
+
+    if (!fs.existsSync("./exports")) {
+      fs.mkdirSync("./exports/responses.xls");
+    }
+
+    // permettre le telecharement du fichier
   }
-}
-
-
-static async SortieResultat(req, res) {
-  // const {id_examen} = req.body;
-  // if(!id_examen) {
-  //   return res.status(400).json({error: 'Les references de  l\'examen sont manquantes'});
-  // }
-
-  // recuperer les questions et responses 
-
-  const exmanenResult = await prisma.examen.findFirst({where:{
-    id_examen:id_examen
-  }});
-
-  const data = {
-
-  }
-
-
-  const workbook = xlsx.utils.book_new();
-
-  const worksheet = xlsx.utils.json_to_sheet(exmanenResult);
-
-  xlsx.utils.book_append_sheet(workbook,worksheet,"reponses");
-
-  if(!fs.existsSync('./exports')){
-    fs.mkdirSync("./exports/responses.xls");
-  }
-
-  // permettre le telecharement du fichier
-  
-
-}
 }

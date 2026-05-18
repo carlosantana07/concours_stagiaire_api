@@ -5,7 +5,8 @@ const storage = multer.memoryStorage();
 const allowedMimeTypes = [
   "application/vnd.ms-excel", 
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
-  "text/csv"
+  "text/csv",
+  'pdf',
 ];
 
 const fileFilter = (req, file, cb) => {
