@@ -16,7 +16,7 @@ import concoursRoutes from "./routes/concours.route.js";
 import { limiter } from "./middleware/rateLimiter.js";
 import examenRoutes from "./routes/examen.route.js";
 
-import { ensureBucketExists } from "./config/minio.js";
+// import { ensureBucketExists } from "./config/minio.js";
 import { UpdateStatusConcours } from './cron/Cron.js';
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -36,7 +36,7 @@ app.use("/api/payment", paiementRoutes);
 app.use("/api/concours", concoursRoutes);
 app.use("/api/examen", examenRoutes);
 
-swaggerDocs(app, PORT);
+// swaggerDocs(app, PORT);
 
 app.get("/", (req, res) => {
   res.send("API e-concours opérationnelle");
@@ -48,6 +48,7 @@ app.use((err, req, res, next) => {
   return res.status(500).json({ error: 'Une erreur interne est survenue' });
 });
 
+// ici je vais mettre les cron  pour les taches automatiques 
 
 UpdateStatusConcours();
 

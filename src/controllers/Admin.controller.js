@@ -4,9 +4,17 @@ import bcrypt from "bcrypt";
 import {
   generateReceipt,
   GenererListCandidat,
+  GenererListConcours,
 } from "../services/Upload-file.service.js";
 import { connection as redis } from "../config/redis.js";
 import { to } from "../utils/to.js";
+import ValidatePhone from "../utils/verifyNumber.js";
+import validateCnib from "../utils/verifyCnib.js";
+import xlsx from "xlsx";
+import path from "path";
+import { response } from "express";
+import fs from "fs";
+import { type } from "os";
 
 async function invaliderCache(prefixe, nbPages = 10) {
   for (let page = 1; page <= nbPages; page++) {
@@ -501,6 +509,74 @@ export class AdminController {
     return res.status(200).json({ message: "Statut changé avec succès" });
   }
 
+  static async AutoSwitch(req, res) {
+    const id = Number(req.body.id_concours);
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: "ID invalide" });
+    }
+
+    const status = ["OUVERT", "FERMER", "ATTENTE"];
+    //                 0          1       2
+
+    console.log("id du concours :", id);
+    const concours = await prisma.concours.findFirst({
+      where: {
+        id_concours: id,
+      },
+    });
+
+    if (!concours) {
+      return res.status(404).json({ error: "Aucun concours trouve" });
+    }
+
+    let statusConcours = concours.statut_concours;
+
+    const isIncludes = status.includes(statusConcours);
+    console.log(isIncludes);
+    if (!isIncludes) {
+      return res
+        .status(400)
+        .json({
+          error:
+            "Le status du concours est errone, veuillez modifier manuellement",
+        });
+    }
+
+    const index = status.indexOf(statusConcours);
+
+    console.log(index);
+
+    switch (index) {
+      case 0:
+        statusConcours = status[1];
+        break;
+      case 1:
+        statusConcours = status[2];
+        break;
+      case 2:
+        statusConcours = status[0];
+        break;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.concours.update({
+        where: {
+          id_concours: concours.id_concours,
+        },
+        data: {
+          statut_concours: statusConcours,
+        },
+      });
+    });
+
+    return res
+      .status(200)
+      .json({
+        message: `Status mis a jour avec success ::index : ${index}  :: status ${statusConcours}`,
+      });
+  }
+
   static async SearchConcours(req, res) {
     const { type, nom, annee, date_debut, date_fin } = req.query;
 
@@ -725,18 +801,16 @@ export class AdminController {
       where: {
         id_candidat: id_candidat,
       },
-      include:{
-        concours:{
-          include:{
-            categorie:true
-          }
+      include: {
+        concours: {
+          include: {
+            categorie: true,
+          },
         },
-        centre:true,
-        paiement:true
-        
-      }
+        centre: true,
+        paiement: true,
+      },
     });
-
 
     // trier si le candidat est direct on enleve certain champs
     let candid;
@@ -758,40 +832,53 @@ export class AdminController {
     return res.status(200).json({ resp });
   }
 
-  static async UpdateCandidat(req,res){
-    const {id_candidat} = req.params;
+  static async UpdateCandidat(req, res) {
+    const { id_candidat } = req.params;
 
-    const {email,nom_jeune_fille, telephone, mot_de_passe, emploi, ministere, matricule} = req.body;
+    const {
+      email,
+      nom_jeune_fille,
+      telephone,
+      mot_de_passe,
+      emploi,
+      ministere,
+      matricule,
+    } = req.body;
 
-    if(!id_candidat) return res.status(400).json({error: 'les references du candidats sont manquantes'});
+    if (!id_candidat)
+      return res
+        .status(400)
+        .json({ error: "les references du candidats sont manquantes" });
 
     const candidat = await prisma.candidat.findUnique({
-      where:{
-        id_candidat
-      }
+      where: {
+        id_candidat,
+      },
     });
 
-    if(!candidat){
-      return res.status(404).json({error: 'aucun candidat associer a cette reference'})
+    if (!candidat) {
+      return res
+        .status(404)
+        .json({ error: "aucun candidat associer a cette reference" });
     }
 
-    // mettre a jour le candidat 
+    // mettre a jour le candidat
 
-    await  prisma.$transaction (async(tx)=>{
+    await prisma.$transaction(async (tx) => {
       const UpdateCandidat = await tx.candidat.update({
-        where:{
-          id_candidat: candidat.id_candidat
+        where: {
+          id_candidat: candidat.id_candidat,
         },
 
-        data:{
+        data: {
           email: email ?? candidat.email,
           nom_jeune_fille: nom_jeune_fille ?? candidat.nom_jeune_fille,
           telephone: telephone ?? candidat.telephone,
           mot_de_passe: mot_de_passe ?? candidat.mot_de_passe,
           emploi: emploi ?? candidat.emploi,
-          ministere : ministere ?? candidat.ministere,
-          matricule: matricule ?? candidat.matricule
-        }
+          ministere: ministere ?? candidat.ministere,
+          matricule: matricule ?? candidat.matricule,
+        },
       });
 
       return UpdateCandidat;
@@ -801,11 +888,102 @@ export class AdminController {
 
     await redis.del(cacheKey);
 
-    return res.status(200).json({message: 'les informations du candidats ont ete mise a jour'});
-
+    return res
+      .status(200)
+      .json({ message: "les informations du candidats ont ete mise a jour" });
   }
 
+  static async Register(req, res) {
+    try {
+      const {
+        nom,
+        prenom,
+        nom_jeune_fille,
+        sexe,
+        date_naissance,
+        lieu_naissance,
+        pays_naissance,
+        numero_cnib,
+        date_delivrance,
+        telephone,
+        email,
+        mot_de_passe,
+        matricule,
+        emploi,
+        ministere,
+        statusCompte,
+      } = req.body;
 
+      // Validation et formatage du téléphone
+      const { valid, formatted, message } = ValidatePhone(telephone);
+      if (!valid) return res.status(400).json({ error: message });
+
+      // Vérifier les doublons
+      const conditions = [{ numero_cnib }, { telephone: formatted }];
+      if (email) conditions.push({ email });
+
+      const existant = await prisma.candidat.findFirst({
+        where: { OR: conditions },
+      });
+
+      // validation du cnib
+
+      const cni = numero_cnib.trim();
+
+      const response = validateCnib(cni, date_delivrance);
+
+      if (response.error) {
+        return res.status(400).json(response);
+      }
+
+      // verifier le status qui dois etre parmis
+      const status = ["ACTIF", "INACTIF", "SUSPENDU"];
+      if (!status.includes(statusCompte)) {
+        return res
+          .status(400)
+          .json({ error: "le status du compte n'est pas valide " });
+      }
+
+      if (existant) {
+        let msg = "Numéro CNIB déjà utilisé";
+        if (existant.telephone === formatted) msg = "Téléphone déjà utilisé";
+        if (email && existant.email === email) msg = "Email déjà utilisé";
+        return res.status(409).json({ error: msg });
+      }
+
+      const motDePasseHashe = await bcrypt.hash(mot_de_passe, 10);
+
+      const candidat = await prisma.candidat.create({
+        data: {
+          nom,
+          prenom,
+          nom_jeune_fille: nom_jeune_fille ?? null,
+          sexe,
+          date_naissance: new Date(date_naissance),
+          lieu_naissance,
+          pays_naissance,
+          numero_cnib,
+          date_delivrance: date_delivrance ? new Date(date_delivrance) : null,
+          telephone: formatted,
+          email: email ?? null,
+          mot_de_passe: motDePasseHashe,
+          statut_compte: statusCompte,
+          type_candidat: matricule ? "PROFESSIONNEL" : "DIRECT",
+          matricule: matricule ?? null,
+          emploi: emploi ?? null,
+          ministere: ministere ?? null,
+        },
+      });
+
+      return res.status(201).json({
+        message: "le compte candidat a ete creer avec succes ",
+      });
+    } catch (err) {
+      return res.status(500).json({
+        error: "Une erreur est survenue lors de la creation du candidat",
+      });
+    }
+  }
 
   static async ListesPaiements(req, res) {
     const {
@@ -1782,21 +1960,126 @@ export class AdminController {
     return res.status(200).json({ message: "Modification du centre reussi" });
   }
 
-  static async UploadsExamresponse() {
-    const { id_examen } = req.body;
-    const files = req.files;
+  static async UploadsExamresponse(req, res) {
+    try {
+      // const { id_examen } = req.body;
+      const file = req.file;
 
-    if (!id_examen) {
-      return res
-        .status(400)
-        .json({ error: "les references de l'examen sont erronnes" });
+      // if (!id_examen) {
+      //   return res.status(400).json({
+      //     error: "les références de l'examen sont erronées",
+      //   });
+      // }
+
+      if (!file) {
+        return res.status(400).json({
+          error: "aucun fichier uploadé",
+        });
+      }
+
+      const validExtension = ["xls", "xlsx", "xlsb", "xltx", "xltm", "csv"];
+
+      const extension = path
+        .extname(file.originalname)
+        .replace(".", "")
+        .toLowerCase();
+
+      if (!validExtension.includes(extension)) {
+        return res.status(400).json({
+          error: `Veuillez inserer un fichier Excel ${validExtension.join(", ")}`,
+        });
+      }
+
+      const workbook = xlsx.read(file.buffer, {
+        type: "buffer",
+      });
+
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+
+      const data = xlsx.utils.sheet_to_json(sheet);
+
+      if (!data.length) {
+        return res.status(404).json({
+          error: "le fichier ne contient pas de contenu",
+        });
+      }
+
+      // console.log(data)
+
+      const questions = data.map((item) => ({
+        question: item.question || item.Question,
+        responses: [item.R1, item.R2, item.R3, item.R4],
+        bonneRep: item.bonneRep || item.R4,
+      }));
+
+      const responses = questions.map((d) => ({
+        question: d.question,
+        response: d.bonneRep,
+      }));
+
+      // si on ne connais pas le nombre de reponse a mettre.. on prend le cas ou la derniere reponse est la bonne
+
+      return res.status(200).json({
+        success: true,
+        count: questions.length,
+        questions,
+        responses,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: error.message,
+      });
     }
-    if (!files || files.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "aucun fichier uploader veuillez inserer le document" });
+  }
+
+  static async ListesConcours(req, res) {
+    const concours = await prisma.concours.findMany({
+      select: {
+        nom: true,
+        nombre_postes: true,
+        categorie: {
+          select: {
+            libelle: true,
+          },
+        },
+        type: true,
+        statut_concours: true,
+      },
+    });
+
+    return res.json(concours);
+    // generer une listes des  concours avec les informations du pays etc...
+
+    // await GenererListConcours(concours,res)
+  }
+
+  static async SortieResultat(req, res) {
+    // const {id_examen} = req.body;
+    // if(!id_examen) {
+    //   return res.status(400).json({error: 'Les references de  l\'examen sont manquantes'});
+    // }
+
+    // recuperer les questions et responses
+
+    const exmanenResult = await prisma.examen.findFirst({
+      where: {
+        id_examen: id_examen,
+      },
+    });
+
+    const data = {};
+
+    const workbook = xlsx.utils.book_new();
+
+    const worksheet = xlsx.utils.json_to_sheet(exmanenResult);
+
+    xlsx.utils.book_append_sheet(workbook, worksheet, "reponses");
+
+    if (!fs.existsSync("./exports")) {
+      fs.mkdirSync("./exports/responses.xls");
     }
 
-    // proceder a l'upload des fichiers
+    // permettre le telecharement du fichier
   }
 }
