@@ -99,7 +99,7 @@ export class OrangeApi {
     } catch (err) {
       console.error("Erreur SendOtp:", err);
 
-      if(err.messageId ==='POL001'){
+      if(err.policyException.messageId ==='POL001'){
         console.log('Le solde de votre compte sms est vide')
       }
       return null;

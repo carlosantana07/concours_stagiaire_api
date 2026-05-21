@@ -53,10 +53,14 @@ router.put("/paiements/:id_paiement/status", AdminController.UpdatePaiementStatu
 
 
 router.get("/candidats/search", AdminController.SearchCandidat);
-router.get("/candidats/create", AdminController.DeleteCandidat);
-r
-router.get("/candidats",AdminController.GetAllCandidat);
-router.get('/candidat/detail/:id_candidat',AdminController.DetailCandidat)
+router.delete("/candidats/:id_candidat", AdminController.DeleteCandidat);
+router.post('/candidats/create',AdminController.RegisterCandidat);
+router.get('/candidats/detail/:id_candidat', AdminController.DetailCandidat)
+router.put('/candidats/update-candiat/:id_candidat',AdminController.UpdateCandidat)
+router.get('/candidats',AdminController.GetAllCandidat)
+
+
+
 
 router.post("/examens", ...validate(ExaenDto.ValidateCreateExam()), AdminController.CreateExamen);
 router.get("/examens/concours/:id_concours", AdminController.GetExamensByConcours);
