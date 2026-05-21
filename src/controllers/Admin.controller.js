@@ -704,46 +704,47 @@ export class AdminController {
     }
     // reucperer les inscriptions liee a cet l'utilisateur
 
-    let resp = [];
+    console.log(candidat)
+    // let resp = [];
 
-    for (const cand of candidat) {
-      const inscription = await prisma.inscription.findFirst({
-        where: {
-          id_candidat: cand.id_candidat,
-        },
-        select: {
-          date_inscription: true,
-          centre: true,
-          concours: {
-            select: {
-              nom: true,
-              type: true,
-              categorie: {
-                select: {
-                  libelle: true,
-                },
-              },
-            },
-          },
-          paiement: {
-            select: {
-              date_paiement: true,
-              statut_paiement: true,
-            },
-          },
-        },
-      });
+    // for (const cand of candidat) {
+    //   const inscription = await prisma.inscription.findFirst({
+    //     where: {
+    //       id_candidat: cand.id_candidat,
+    //     },
+    //     select: {
+    //       date_inscription: true,
+    //       centre: true,
+    //       concours: {
+    //         select: {
+    //           nom: true,
+    //           type: true,
+    //           categorie: {
+    //             select: {
+    //               libelle: true,
+    //             },
+    //           },
+    //         },
+    //       },
+    //       paiement: {
+    //         select: {
+    //           date_paiement: true,
+    //           statut_paiement: true,
+    //         },
+    //       },
+    //     },
+    //   });
 
-      resp.push({
-        candidat: cand,
-        concours: inscription.concours,
-        paiement: inscription.paiement,
-      });
-    }
+    //   resp.push({
+    //     candidat: cand,
+    //     concours: inscription.concours,
+    //     paiement: inscription.paiement,
+    //   });
+    // }
 
-    await redis.set(cachekey, JSON.stringify(resp), "EX", 60);
+    await redis.set(cachekey, JSON.stringify(candidat), "EX", 60);
 
-    return res.status(200).json({ resp });
+    return res.status(200).json({candidat: candidat });
   }
 
   static async DetailCandidat(req, res) {
