@@ -893,7 +893,7 @@ export class AdminController {
       .json({ message: "les informations du candidats ont ete mise a jour" });
   }
 
-  static async Register(req, res) {
+  static async RegisterCandidat(req, res) {
     try {
       const {
         nom,
