@@ -674,13 +674,13 @@ export class AdminController {
   }
 
   static async GetAllCandidat(req, res) {
-    const page = parseInt(req.query.page) || 1;
-    const limit = 10;
-    const skip = (page - 1) * limit;
+    // const page = parseInt(req.query.page) || 1;
+    // const limit = 10;
+    // const skip = (page - 1) * limit;
 
     // console.log(page)
 
-    const cachekey = `candidat:page:${page}:limit:${limit}`;
+    const cachekey = `candidat`;
 
     const cached = await redis.get(cachekey);
     if (cached) {
@@ -690,8 +690,7 @@ export class AdminController {
     // recuperer tous les candidats et les mettres en caache
 
     const candidat = await prisma.candidat.findMany({
-      take: limit,
-      skip,
+   
       select: {
         id_candidat: true,
         nom: true,
