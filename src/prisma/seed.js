@@ -234,8 +234,8 @@ for (const concours of concoursList) {
 
   // ── 10 000 CANDIDATS EN MASSE ──────────────────────────────
   const MOT_DE_PASSE_HASH = await bcrypt.hash("Password@123", 10);
-  const TOTAL             = 10_000;
-  const LOT               = 500;
+  const TOTAL             = 500;
+  const LOT               = 100;
 
   const nbExistants = await prisma.candidat.count();
   if (nbExistants >= TOTAL) {
