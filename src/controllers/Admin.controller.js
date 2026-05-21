@@ -350,6 +350,8 @@ export class AdminController {
           statut_concours: true,
           date_debut: true,
           date_fin: true,
+          frais_inscription: true,
+          annee: true,
           nombre_postes: true,
           _count: { select: { inscription: true } },
           categorie: { select: { id: true, libelle: true, description: true } },
