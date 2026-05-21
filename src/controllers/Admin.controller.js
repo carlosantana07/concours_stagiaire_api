@@ -699,6 +699,10 @@ export class AdminController {
         nom: true,
         prenom: true,
         type_candidat: true,
+        email: true,
+        telephone: true,
+        numero_cnib: true,
+      
       },
     });
 
