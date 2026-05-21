@@ -676,13 +676,13 @@ export class AdminController {
   }
 
   static async GetAllCandidat(req, res) {
-    const page = parseInt(req.query.page) || 1;
-    const limit = 10;
-    const skip = (page - 1) * limit;
+    // const page = parseInt(req.query.page) || 1;
+    // const limit = 10;
+    // const skip = (page - 1) * limit;
 
     // console.log(page)
 
-    const cachekey = `candidat:page:${page}:limit:${limit}`;
+    const cachekey = `candidat`;
 
     const cached = await redis.get(cachekey);
     if (cached) {
@@ -692,8 +692,7 @@ export class AdminController {
     // recuperer tous les candidats et les mettres en caache
 
     const candidat = await prisma.candidat.findMany({
-      take: limit,
-      skip,
+   
       select: {
         id_candidat: true,
         nom: true,
@@ -711,46 +710,47 @@ export class AdminController {
     }
     // reucperer les inscriptions liee a cet l'utilisateur
 
-    let resp = [];
+    console.log(candidat)
+    // let resp = [];
 
-    for (const cand of candidat) {
-      const inscription = await prisma.inscription.findFirst({
-        where: {
-          id_candidat: cand.id_candidat,
-        },
-        select: {
-          date_inscription: true,
-          centre: true,
-          concours: {
-            select: {
-              nom: true,
-              type: true,
-              categorie: {
-                select: {
-                  libelle: true,
-                },
-              },
-            },
-          },
-          paiement: {
-            select: {
-              date_paiement: true,
-              statut_paiement: true,
-            },
-          },
-        },
-      });
+    // for (const cand of candidat) {
+    //   const inscription = await prisma.inscription.findFirst({
+    //     where: {
+    //       id_candidat: cand.id_candidat,
+    //     },
+    //     select: {
+    //       date_inscription: true,
+    //       centre: true,
+    //       concours: {
+    //         select: {
+    //           nom: true,
+    //           type: true,
+    //           categorie: {
+    //             select: {
+    //               libelle: true,
+    //             },
+    //           },
+    //         },
+    //       },
+    //       paiement: {
+    //         select: {
+    //           date_paiement: true,
+    //           statut_paiement: true,
+    //         },
+    //       },
+    //     },
+    //   });
 
-      resp.push({
-        candidat: cand,
-        concours: inscription.concours,
-        paiement: inscription.paiement,
-      });
-    }
+    //   resp.push({
+    //     candidat: cand,
+    //     concours: inscription.concours,
+    //     paiement: inscription.paiement,
+    //   });
+    // }
 
-    await redis.set(cachekey, JSON.stringify(resp), "EX", 60);
+    await redis.set(cachekey, JSON.stringify(candidat), "EX", 60);
 
-    return res.status(200).json({ resp });
+    return res.status(200).json({candidat: candidat });
   }
 
   static async DetailCandidat(req, res) {
