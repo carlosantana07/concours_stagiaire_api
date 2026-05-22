@@ -864,6 +864,7 @@ export class AdminController {
 
     // mettre a jour le candidat
 
+    const hash = await bcrypt.hash (mot_de_passe,10)
     await prisma.$transaction(async (tx) => {
       const UpdateCandidat = await tx.candidat.update({
         where: {
@@ -874,7 +875,7 @@ export class AdminController {
           email: email ?? candidat.email,
           nom_jeune_fille: nom_jeune_fille ?? candidat.nom_jeune_fille,
           telephone: telephone ?? candidat.telephone,
-          mot_de_passe: mot_de_passe ?? candidat.mot_de_passe,
+          mot_de_passe: hash ?? candidat.mot_de_passe,
           emploi: emploi ?? candidat.emploi,
           ministere: ministere ?? candidat.ministere,
           matricule: matricule ?? candidat.matricule,

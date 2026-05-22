@@ -56,7 +56,7 @@ router.get("/candidats/search", AdminController.SearchCandidat);
 router.delete("/candidats/delete/:id_candidat", AdminController.DeleteCandidat);
 router.post('/candidats/create',AdminController.RegisterCandidat);
 router.get('/candidats/detail/:id_candidat', AdminController.DetailCandidat)
-router.put('/candidats/update-candiat/:id_candidat',AdminController.UpdateCandidat)
+router.put('/candidats/update-candidat/:id_candidat',AdminController.UpdateCandidat)
 
 
 
