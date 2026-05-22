@@ -55,53 +55,63 @@ export class ConcoursController {
     }
   }
 
-  static async GetAllConcours(req, res) {
-    try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = 10;
-      const skip = (page - 1) * limit;
+static async GetAllConcours(req, res) {
+  try {
 
-      const [concours, total] = await Promise.all([
-        prisma.concours.findMany({
-          where:{       statut_concours: "OUVERT",},
-          skip,
-          take: limit,
-          orderBy: { date_debut: "desc" },
+    const concours = await prisma.concours.findMany({
+
+      where: {
+        statut_concours: "OUVERT",
+      },
+
+      orderBy: {
+        date_debut: "desc",
+      },
+
+      select: {
+        id_concours: true,
+        nom: true,
+        type: true,
+        description: true,
+        frais_inscription: true,
+        nombre_postes: true,
+        annee: true,
+        statut_concours: true,
+        date_debut: true,
+        date_fin: true,
+
+        _count: {
           select: {
-            id_concours: true,
-            nom: true,
-            type: true,
-            statut_concours: true,
-            date_debut: true,
-            date_fin: true,
-            nombre_postes: true,
-            _count: { select: { inscription: true } },
-            categorie: {
-              select: {
-                id: true,
-                libelle: true,
-                description: true,
-              },
-            },
+            inscription: true,
           },
-        }),
-        prisma.concours.count(),
-      ]);
+        },
 
-      console.log(concours);
-      res.status(200).json({
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        data: concours,
-      });
-    } catch (err) {
-      console.error("Une erreur est survenue:", err);
-      res.status(500).json({ error: "Impossible de récupérer les concours." });
-    }
+        categorie: {
+          select: {
+            id: true,
+            libelle: true,
+            description: true,
+          },
+        },
+      },
+    });
+
+    console.log(concours);
+
+    return res.status(200).json({
+      ok: true,
+      data: concours,
+    });
+
+  } catch (err) {
+
+    console.error("Une erreur est survenue:", err);
+
+    return res.status(500).json({
+      error: "Impossible de récupérer les concours.",
+    });
   }
-
+}
 
 static async DetailConcours(req, res) {
   try {
