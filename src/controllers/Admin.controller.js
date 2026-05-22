@@ -649,7 +649,7 @@ export class AdminController {
   }
 
   static async DeleteCandidat(req, res) {
-    const { id_candidat } = req.body;
+    const { id_candidat } = req.params;
 
     const candidat = await prisma.candidat.findUnique({
       where: { id_candidat },
@@ -664,11 +664,11 @@ export class AdminController {
       data: { deletedAt: new Date() },
     });
 
-    const cacheKey = `candidat:${id_candidat}`;
+    const cacheKey = `candidat`;
     await redis.del(cacheKey);
-    for (let page = 1; page <= 10; page++) {
-      await redis.del(`candidat:${page}:limit:10`);
-    }
+   
+      // await redis.del(`candida);
+    
 
     return res.status(200).json({ message: "Candidat supprimé avec succès" });
   }
@@ -884,7 +884,7 @@ export class AdminController {
       return UpdateCandidat;
     });
 
-    const cacheKey = `candidat:${id_candidat}`;
+    const cacheKey = `candidat`;
 
     await redis.del(cacheKey);
 
