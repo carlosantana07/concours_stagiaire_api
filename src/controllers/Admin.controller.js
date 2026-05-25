@@ -327,50 +327,56 @@ export class AdminController {
     });
   }
 
-  static async GetAllConcours(req, res) {
-    const page = parseInt(req.query.page) || 1;
-    const limit = 10;
-    const skip = (page - 1) * limit;
+static async GetAllConcours(req, res) {
 
-    const cacheKey = `concours:page${page}:limit:${limit}`;
-    const concoursCached = await redis.get(cacheKey);
-    if (concoursCached) {
-      return res.status(200).json(JSON.parse(concoursCached));
-    }
+  try {
 
-    const [concours, total] = await Promise.all([
-      prisma.concours.findMany({
-        skip,
-        take: limit,
-        orderBy: { date_debut: "desc" },
-        select: {
-          id_concours: true,
-          nom: true,
-          type: true,
-          statut_concours: true,
-          date_debut: true,
-          date_fin: true,
-          frais_inscription: true,
-          annee: true,
-          nombre_postes: true,
-          _count: { select: { inscription: true } },
-          categorie: { select: { id: true, libelle: true, description: true } },
+    const concours = await prisma.concours.findMany({
+
+      where: {
+        statut_concours: "OUVERT",
+      },
+
+      orderBy: {
+        date_debut: "desc",
+      },
+
+      select: {
+        id_concours: true,
+        nom: true,
+        type: true,
+        description: true,
+        frais_inscription: true,
+        nombre_postes: true,
+        annee: true,
+        statut_concours: true,
+        date_debut: true,
+        date_fin: true,
+
+        categorie: {
+          select: {
+            id: true,
+            libelle: true,
+          },
         },
-      }),
-      prisma.concours.count(),
-    ]);
+      },
+    });
 
-    const response = {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-      data: concours,
-    };
+    return res.status(200).json({
+      ok: true,
+      data: concours
+    });
 
-    await redis.set(cacheKey, JSON.stringify(response), "EX", 300);
-    return res.status(200).json(response);
+  } catch (err) {
+
+    console.error(err);
+
+    return res.status(500).json({
+      ok: false,
+      error: "Erreur récupération concours"
+    });
   }
+}
 
   static async DetailConcours(req, res) {
     const id_concours = parseInt(req.params.id_concours);
