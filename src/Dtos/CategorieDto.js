@@ -3,7 +3,7 @@ import { body } from "express-validator";
 export class CategorieDto {
   static CreateCategorie() {
     return [
-      body("liblle")
+      body("libelle")
         .notEmpty()
         .withMessage("Le libelle est requis")
         .isString() 
