@@ -23,8 +23,8 @@ ALTER COLUMN "telephone" SET DATA TYPE VARCHAR(11);
 ALTER TABLE "concours" ALTER COLUMN "statut_concours" SET DEFAULT 'Attente';
 
 -- AlterTable
-ALTER TABLE "inscription" DROP COLUMN "statut_inscription",
-ADD COLUMN     "statut_inscription" "StatutInscription" NOT NULL;
+-- ALTER TABLE "inscription" DROP COLUMN "statut_inscription",
+-- ADD COLUMN     "statut_inscription" "StatutInscription" NOT NULL;
 
 -- CreateIndex
 CREATE UNIQUE INDEX "candidat_telephone_key" ON "candidat"("telephone");

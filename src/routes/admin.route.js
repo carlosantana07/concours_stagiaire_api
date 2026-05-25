@@ -17,10 +17,8 @@ router.post("/login", ...validate(AdminDto.ValidateLogin()), AdminController.Log
 router.post("/register", ...validate(AdminDto.ValidateRegister()), AdminController.Register);
 
 
-router.get('/concours/listes',AdminController.ListesConcours);
-router.post("/upload-exam-question", upload.single("file"), AdminController.UploadsExamresponse);
-router.get('/sorti-resultat',AdminController.SortieResultat);
-router.patch('/concours/auto-switch-status',AdminController.AutoSwitch);
+
+
 
 router.use(AdminMiddleware.handle);
 
@@ -66,5 +64,12 @@ router.get("/examens/concours/:id_concours", AdminController.GetExamensByConcour
 router.get("/examens/:id_examen", AdminController.DetailExamen);
 router.put("/examens/:id_examen", AdminController.UpdateExamen);
 router.delete("/examens/:id_examen", AdminController.DeleteExamen);
+router.get('/examen/list-exam',AdminController.getAllExam)
+
+
+router.post("/upload-exam-question", upload.single("file"), AdminController.UploadsExamresponse);
+router.get('/sorti-resultat',AdminController.SortieResultat);
+router.patch('/concours/auto-switch-status',AdminController.AutoSwitch);
+router.get('/concours/listes',AdminController.ListesConcours);
 
 export default router;

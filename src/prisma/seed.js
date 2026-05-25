@@ -198,7 +198,7 @@ console.log(`✅ ${concoursList.length} concours prêts`);
         mot_de_passe:      await bcrypt.hash("Password@123", 10),
         statut_compte:     "ACTIF",
         type_candidat:     "DIRECT",
-        choix_notification: "mail",
+        // choix_notification: "mail",
       },
     });
   }
@@ -268,7 +268,7 @@ for (const concours of concoursList) {
           mot_de_passe:       MOT_DE_PASSE_HASH,
           statut_compte:      "ACTIF",
           type_candidat:      "DIRECT",
-          choix_notification: "sms",
+          // choix_notification: "sms",
         });
       }
 

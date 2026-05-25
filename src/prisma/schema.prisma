@@ -8,9 +8,187 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─────────────────────────────────────────────
-// ENUMS
-// ─────────────────────────────────────────────
+model categorieConcours {
+  id               Int        @id @default(autoincrement())
+  libelle          String     @db.VarChar(150)
+  description      String?
+  flgActif         Boolean    @default(true)
+  createdBy        Int?
+  createdDate      DateTime   @default(now())
+  deletedAt        DateTime?
+  lastModifiedBy   Int?
+  lastModifiedDate DateTime?  @updatedAt
+  concours         concours[]
+}
+
+model admin {
+  id_admin      String     @id @default(uuid()) @db.Uuid
+  nom           String     @db.VarChar(100)
+  prenom        String     @db.VarChar(100)
+  email         String     @unique @db.VarChar(150)
+  mot_de_passe  String     @db.VarChar(255)
+  telephone     String?    @db.VarChar(20)
+  role          RoleAdmin  @default(GESTIONNAIRE)
+  actif         Boolean    @default(true)
+  date_creation DateTime   @default(now()) @db.Timestamp(6)
+  updated_at    DateTime   @updatedAt
+  concours      concours[]
+}
+
+model centre {
+  id_centre   Int                @id @default(autoincrement())
+  nom         String
+  concours    ConcoursCentre[]
+  inscription inscription[]
+  lieux       lieuxComposition[]
+}
+
+model ConcoursCentre {
+  id         Int      @id @default(autoincrement())
+  concoursId Int
+  centreId   Int
+  centre     centre   @relation(fields: [centreId], references: [id_centre])
+  concours   concours @relation(fields: [concoursId], references: [id_concours])
+
+  @@unique([concoursId, centreId])
+}
+
+model candidat {
+  id_candidat     String        @id @default(uuid()) @db.Uuid
+  nom             String        @db.VarChar(100)
+  prenom          String        @db.VarChar(100)
+  nom_jeune_fille String?       @db.VarChar(100)
+  sexe            Sexe
+  date_naissance  DateTime      @db.Date
+  lieu_naissance  String        @db.VarChar(150)
+  pays_naissance  String        @db.VarChar(150)
+  numero_cnib     String        @unique @db.VarChar(50)
+  date_delivrance DateTime      @db.Date
+  telephone       String        @unique @db.VarChar(11)
+  email           String?        @unique @db.VarChar(150)
+  mot_de_passe    String        @db.VarChar(255)
+  recepisse       String?       @db.VarChar(500)
+  statut_compte   StatutCompte  @default(ACTIF)
+  date_creation   DateTime      @default(now()) @db.Timestamp(6)
+  otp             String?       @db.VarChar(10)
+  otp_expiration  DateTime?
+  emploi          String?       @db.VarChar(150)
+  matricule       String?       @db.VarChar(100)
+  ministere       String?       @db.VarChar(150)
+  type_candidat   TypeCandidat  @default(DIRECT)
+  deletedAt       DateTime?
+  update_at       DateTime      @default(now()) @db.Timestamp(6)
+  composer        composer[]
+  document        document[]
+  inscription     inscription[]
+  resultat        resultat[]
+}
+
+model concours {
+  nom               String             @db.VarChar(200)
+  type              TypeConcours
+  description       String?
+  frais_inscription Decimal            @db.Decimal(10, 2)
+  nombre_postes     Int
+  annee             Int
+  date_debut        DateTime           @db.Date
+  date_fin          DateTime           @db.Date
+  statut_concours   String             @default("Attente") @db.VarChar(50)
+  id_admin          String?            @db.Uuid
+  date_creation     DateTime           @default(now()) @db.Timestamp(6)
+  update_at         DateTime           @default(now()) @db.Timestamp(6)
+  id_concours       Int                @id @default(autoincrement())
+  categorieId       Int?
+  centres           ConcoursCentre[]
+  composer          composer[]
+  categorie         categorieConcours? @relation(fields: [categorieId], references: [id])
+  admin             admin?             @relation(fields: [id_admin], references: [id_admin], onDelete: NoAction, onUpdate: NoAction)
+  examen            examen[]
+  inscription       inscription[]
+}
+
+model examen {
+  date_examen   DateTime   @db.Date
+  heure         DateTime?  @db.Time(6)
+  lieu          String?    @db.VarChar(200)
+  coefficient   Int        @default(1)
+  intitule      String     @db.VarChar(200)
+  type_examen   TypeExamen @default(ECRIT)
+  date_creation DateTime   @default(now()) @db.Timestamp(6)
+  update_at     DateTime   @default(now()) @db.Timestamp(6)
+  id_examen     Int        @id @default(autoincrement())
+  id_concours   Int
+  concours      concours   @relation(fields: [id_concours], references: [id_concours], onDelete: Cascade, onUpdate: NoAction)
+  resultat      resultat[]
+}
+
+model document {
+  fichier       String       @db.VarChar(500)
+  date_upload   DateTime     @default(now()) @db.Timestamp(6)
+  id_candidat   String       @db.Uuid
+  id_document   Int          @id @default(autoincrement())
+  type_document TypeDocument
+  candidat      candidat     @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model inscription {
+  date_inscription   DateTime          @default(now()) @db.Timestamp(6)
+  id_candidat        String            @db.Uuid
+  id_inscription     Int               @id @default(autoincrement())
+  id_concours        Int
+  statut_inscription StatutInscription
+  id_centre          Int
+  candidat           candidat          @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
+  centre             centre            @relation(fields: [id_centre], references: [id_centre], onDelete: Cascade, onUpdate: NoAction)
+  concours           concours          @relation(fields: [id_concours], references: [id_concours], onDelete: Cascade, onUpdate: NoAction)
+  paiement           paiement[]
+
+  @@unique([id_candidat, id_concours])
+}
+
+model paiement {
+  montant               Decimal         @db.Decimal(10, 2)
+  date_paiement         DateTime        @default(now()) @db.Timestamp(6)
+  mode_paiement         String?         @db.VarChar(50)
+  reference_transaction String?         @unique @db.VarChar(150)
+  statut_paiement       statut_paiement @default(ATTENTE)
+  id_paiement           Int             @id @default(autoincrement())
+  id_inscription        Int
+  inscription           inscription     @relation(fields: [id_inscription], references: [id_inscription], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model resultat {
+  id_candidat      String   @db.Uuid
+  note             Decimal? @db.Decimal(5, 2)
+  moyenne_generale Decimal? @db.Decimal(5, 2)
+  statut           String?  @db.VarChar(50)
+  id_examen        Int
+  candidat         candidat @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
+  examen           examen   @relation(fields: [id_examen], references: [id_examen], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([id_candidat, id_examen])
+}
+
+model lieuxComposition {
+  id_lieux     Int        @id @default(autoincrement())
+  nom          String     @db.VarChar(250)
+  id_centre    Int
+  quota        Int
+  compositions composer[]
+  centre       centre     @relation(fields: [id_centre], references: [id_centre])
+}
+
+model composer {
+  id_composer Int              @id @default(autoincrement())
+  id_candidat String           @db.Uuid
+  id_concours Int
+  id_lieux    Int
+  candidat    candidat         @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade)
+  concours    concours         @relation(fields: [id_concours], references: [id_concours], onDelete: Cascade)
+  lieux       lieuxComposition @relation(fields: [id_lieux], references: [id_lieux], onDelete: Cascade)
+
+  @@unique([id_candidat, id_concours])
+}
 
 enum RoleAdmin {
   SUPERADMIN
@@ -64,234 +242,12 @@ enum StatutInscription {
   ANNULEE
 }
 
-// ─────────────────────────────────────────────
-// ADMIN
-// ─────────────────────────────────────────────
-
-model categorieConcours {
-  id               Int        @id @default(autoincrement())
-  libelle          String     @db.VarChar(150)
-  description      String?    @db.Text
-  flgActif         Boolean    @default(true)
-  createdBy        Int?
-  createdDate      DateTime   @default(now())
-  deletedAt        DateTime?
-  lastModifiedBy   Int?
-  lastModifiedDate DateTime?  @updatedAt
-  concours         concours[]
-}
-
-model admin {
-  id_admin      String    @id @default(uuid()) @db.Uuid
-  nom           String    @db.VarChar(100)
-  prenom        String    @db.VarChar(100)
-  email         String    @unique @db.VarChar(150)
-  mot_de_passe  String    @db.VarChar(255)
-  telephone     String?   @db.VarChar(20)
-  role          RoleAdmin @default(GESTIONNAIRE)
-  actif         Boolean   @default(true)
-  date_creation DateTime  @default(now()) @db.Timestamp(6)
-  updated_at    DateTime  @updatedAt
-
-  concours concours[]
-}
-
-// ─────────────────────────────────────────────
-// CENTRE
-// ─────────────────────────────────────────────
-
-model centre {
-  id_centre   Int                @id @default(autoincrement())
-  nom         String
-  concours    ConcoursCentre[]
-  inscription inscription[]
-  lieux       lieuxComposition[]
-}
-
-model ConcoursCentre {
-  id         Int @id @default(autoincrement())
-  concoursId Int
-  centreId   Int
-
-  concours concours @relation(fields: [concoursId], references: [id_concours])
-  centre   centre   @relation(fields: [centreId], references: [id_centre])
-
-  @@unique([concoursId, centreId])
-}
-
-// ─────────────────────────────────────────────
-// CANDIDAT
-// ─────────────────────────────────────────────
-
-model candidat {
-  id_candidat     String        @id @default(uuid()) @db.Uuid
-  type_candidat   TypeCandidat  
-  nom             String        @db.VarChar(100)
-  prenom          String        @db.VarChar(100)
-  nom_jeune_fille String?       @db.VarChar(100)
-  sexe            Sexe
-  date_naissance  DateTime      @db.Date
-  lieu_naissance  String        @db.VarChar(150)
-  pays_naissance  String        @db.VarChar(150)
-  numero_cnib     String        @unique @db.VarChar(50)
-  date_delivrance DateTime      @db.Date
-  telephone       String        @unique @db.VarChar(11)
-  email           String?       @unique @db.VarChar(150)
-  mot_de_passe    String        @db.VarChar(255)
-  recepisse       String?       @db.VarChar(500)
-  statut_compte   StatutCompte  @default(ACTIF)
-  date_creation   DateTime      @default(now()) @db.Timestamp(6)
-  update_at       DateTime      @default(now()) @db.Timestamp(6)
-  otp             String?       @db.VarChar(10)
-  otp_expiration  DateTime?
-  matricule       String?       @db.VarChar(100)
-  emploi          String?       @db.VarChar(150)
-  ministere       String?       @db.VarChar(150)
-  deletedAt       DateTime?
-  choix_notification String @default("SMS") @db.VarChar(10)
-  document        document[]
-  inscription     inscription[]
-  resultat        resultat[]
-  composer        composer[]
-}
-
-// ─────────────────────────────────────────────
-// CONCOURS
-// ─────────────────────────────────────────────
-
-model concours {
-  id_concours       Int                @id @default(autoincrement())
-  nom               String             @db.VarChar(200)
-  type              TypeConcours
-  description       String?            @db.Text
-  frais_inscription Decimal            @db.Decimal(10, 2)
-  nombre_postes     Int
-  annee             Int
-  date_debut        DateTime           @db.Date
-  date_fin          DateTime           @db.Date
-  statut_concours   String             @default("Attente") @db.VarChar(50)
-  id_admin          String?            @db.Uuid
-  update_at         DateTime           @default(now()) @db.Timestamp(6)
-  date_creation     DateTime           @default(now()) @db.Timestamp(6)
-  categorieId       Int?
-  categorie         categorieConcours? @relation(fields: [categorieId], references: [id])
-  admin             admin?             @relation(fields: [id_admin], references: [id_admin], onDelete: NoAction, onUpdate: NoAction)
-  examen            examen[]
-  inscription       inscription[]
-  centres           ConcoursCentre[]
-  composer          composer[]
-}
-
-model examen {
-  id_examen     Int        @id @default(autoincrement())
-  intitule      String     @db.VarChar(200)
-  type_examen   TypeExamen @default(ECRIT)
-  coefficient   Int        @default(1)
-  date_examen   DateTime   @db.Date
-  heure         DateTime?  @db.Time(6)
-  lieu          String?    @db.VarChar(200)
-  id_concours   Int
-  update_at     DateTime   @default(now()) @db.Timestamp(6)
-  date_creation DateTime   @default(now()) @db.Timestamp(6)
-  concours      concours   @relation(fields: [id_concours], references: [id_concours], onDelete: Cascade, onUpdate: NoAction)
-  resultat      resultat[]
-}
-
-// ─────────────────────────────────────────────
-// DOCUMENT
-// ─────────────────────────────────────────────
 enum TypeDocument {
   CEP
   BEPC
   BEP
   BAC
-  CNIB
-  PASSPORT
   LICENCE
   MASTER
   DOCTORAT
-
 }
-model document {
-  id_document   Int      @id @default(autoincrement())
-  type_document TypeDocument   
-  fichier       String   @db.VarChar(500)
-  date_upload   DateTime @default(now()) @db.Timestamp(6)
-  id_candidat   String   @db.Uuid
-  candidat      candidat @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
-}
-
-// ─────────────────────────────────────────────
-// INSCRIPTION
-// ─────────────────────────────────────────────
-
-model inscription {
-  id_inscription     Int               @id @default(autoincrement())
-  date_inscription   DateTime          @default(now()) @db.Timestamp(6)
-  statut_inscription StatutInscription
-  id_candidat        String            @db.Uuid
-  id_concours        Int
-  id_centre          Int
-  candidat           candidat          @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
-  concours           concours          @relation(fields: [id_concours], references: [id_concours], onDelete: Cascade, onUpdate: NoAction)
-  centre             centre            @relation(fields: [id_centre], references: [id_centre], onDelete: Cascade, onUpdate: NoAction)
-  paiement           paiement[]
-
-  // champ oublier le centre n'a pas ete definis
-  @@unique([id_candidat, id_concours])
-}
-
-// ─────────────────────────────────────────────
-// PAIEMENT
-// ─────────────────────────────────────────────
-
-model paiement {
-  id_paiement           Int             @id @default(autoincrement())
-  montant               Decimal         @db.Decimal(10, 2)
-  date_paiement         DateTime        @default(now()) @db.Timestamp(6)
-  mode_paiement         String?         @db.VarChar(50)
-  reference_transaction String?         @unique @db.VarChar(150)
-  statut_paiement       statut_paiement @default(ATTENTE)
-  id_inscription        Int
-  inscription           inscription     @relation(fields: [id_inscription], references: [id_inscription], onDelete: Cascade, onUpdate: NoAction)
-}
-
-// ─────────────────────────────────────────────
-// RÉSULTAT
-// ─────────────────────────────────────────────
-
-model resultat {
-  id_candidat      String   @db.Uuid
-  id_examen        Int
-  note             Decimal? @db.Decimal(5, 2)
-  moyenne_generale Decimal? @db.Decimal(5, 2)
-  statut           String?  @db.VarChar(50)
-  candidat         candidat @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
-  examen           examen   @relation(fields: [id_examen], references: [id_examen], onDelete: Cascade, onUpdate: NoAction)
-
-  @@id([id_candidat, id_examen])
-}
-
-model lieuxComposition {
-  id_lieux     Int        @id @default(autoincrement())
-  nom          String     @db.VarChar(250)
-  id_centre    Int
-  quota        Int
-  centre       centre     @relation(fields: [id_centre], references: [id_centre])
-  compositions composer[]
-}
-
-model composer {
-  id_composer Int    @id @default(autoincrement())
-  id_candidat String @db.Uuid
-  id_concours Int
-  id_lieux    Int
-
-  candidat candidat         @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade)
-  concours concours         @relation(fields: [id_concours], references: [id_concours], onDelete: Cascade)
-  lieux    lieuxComposition @relation(fields: [id_lieux], references: [id_lieux], onDelete: Cascade)
-
-  @@unique([id_candidat, id_concours])
-}
-
-

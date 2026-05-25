@@ -1459,6 +1459,12 @@ export class AdminController {
     return res.status(200).json({ message: "Examen supprimé avec succès" });
   }
 
+  static async getAllExam (req,res){
+    
+    const examen = await prisma.examen.findMany();
+    return res.status(200).json(examen);
+  } 
+
   static async createLieuCompo(req, res) {
     const { nom, id_centre, quota } = req.body;
 
