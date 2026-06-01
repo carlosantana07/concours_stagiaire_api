@@ -390,11 +390,11 @@ export class AdminController {
   }
 
   static async GetAllConcours(req, res) {
-    const page = parseInt(req.query.page) || 1;
-    const limit = 10;
-    const skip = (page - 1) * limit;
+    // const page = parseInt(req.query.page) || 1;
+    // const limit = 10;
+    // const skip = (page - 1) * limit;
 
-    const cacheKey = `concours:page${page}:limit:${limit}`;
+    const cacheKey = `concours`;
     const concoursCached = await redis.get(cacheKey);
     if (concoursCached) {
       return res.status(200).json(JSON.parse(concoursCached));
@@ -402,8 +402,8 @@ export class AdminController {
 
     const [concours, total] = await Promise.all([
       prisma.concours.findMany({
-        skip,
-        take: limit,
+        // skip,
+        // take: limit,
         orderBy: { date_debut: "desc" },
         select: {
           id_concours: true,
@@ -421,10 +421,10 @@ export class AdminController {
     ]);
 
     const response = {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
+      // page,
+      // limit,
+      // total,
+      // totalPages: Math.ceil(total / limit),
       data: concours,
     };
 
@@ -512,9 +512,9 @@ export class AdminController {
       },
     });
 
-    for (let page = 1; page <= 10; page++) {
-      await redis.del(`concours:page${page}:limit:10`);
-    }
+
+      await redis.del(`concours`);
+    
 
     return res.status(200).json({
       message: "Les informations du concours ont été mises à jour",
@@ -543,6 +543,8 @@ export class AdminController {
       });
       await tx.concours.delete({ where: { id_concours } });
     });
+
+    await redis.del('concours')
 
     return res.status(200).json({ message: "Concours supprimé avec succès" });
   }
