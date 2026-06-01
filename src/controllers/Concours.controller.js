@@ -54,54 +54,19 @@ export class ConcoursController {
       return res.status(500).json({ error: "une erreur est survenue" });
     }
   }
+static async GetAllConcours(req, res) {
 
-  static async GetAllConcours(req, res) {
-    try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = 10;
-      const skip = (page - 1) * limit;
+   console.log("BACKEND MODIFIE");
 
-      const [concours, total] = await Promise.all([
-        prisma.concours.findMany({
-          where:{       statut_concours: "OUVERT",},
-          skip,
-          take: limit,
-          orderBy: { date_debut: "desc" },
-          select: {
-            id_concours: true,
-            nom: true,
-            type: true,
-            statut_concours: true,
-            date_debut: true,
-            date_fin: true,
-            nombre_postes: true,
-            _count: { select: { inscription: true } },
-            categorie: {
-              select: {
-                id: true,
-                libelle: true,
-                description: true,
-              },
-            },
-          },
-        }),
-        prisma.concours.count(),
-      ]);
+   const concours = await prisma.concours.findMany();
 
-      console.log(concours);
-      res.status(200).json({
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        data: concours,
-      });
-    } catch (err) {
-      console.error("Une erreur est survenue:", err);
-      res.status(500).json({ error: "Impossible de récupérer les concours." });
-    }
-  }
+   console.log("TOTAL :", concours.length);
 
+   return res.status(200).json({
+      ok: true,
+      data: concours
+   });
+}
 
 static async DetailConcours(req, res) {
   try {

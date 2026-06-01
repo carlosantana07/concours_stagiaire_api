@@ -14,6 +14,8 @@ import inscriptionRoutes from "./routes/inscription.route.js";
 import paiementRoutes from "./routes/paiement.route.js";
 import concoursRoutes from "./routes/concours.route.js";
 import { limiter } from "./middleware/rateLimiter.js";
+import examenRoutes from "./routes/examen.route.js";
+
 
 // import { ensureBucketExists } from "./config/minio.js";
 import { UpdateStatusConcours } from './cron/Cron.js';
@@ -33,6 +35,7 @@ app.use("/api/candidat", candidatRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payment", paiementRoutes);
 app.use("/api/concours", concoursRoutes);
+app.use("/api/examen", examenRoutes);
 
 // swaggerDocs(app, PORT);
 
