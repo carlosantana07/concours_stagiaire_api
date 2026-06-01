@@ -1224,13 +1224,9 @@ export class AdminController {
   static async CreateCategorie(req, res) {
     const { libelle, description } = req.body;
 
-    const libelles = (Array.isArray(libelle) ? libelle : libelle.split(","))
-      .map((l) => l.trim())
-      .filter(Boolean);
-
     const categoriesExistantes = await prisma.categorieConcours.findMany({
       where: {
-        libelle: { in: libelles, mode: "insensitive" },
+        libelle: { equals: libelle, mode: "insensitive" },
       },
       select: { libelle: true },
     });
@@ -1244,14 +1240,15 @@ export class AdminController {
 
     await prisma.categorieConcours.createMany({
       data: {
-        libelle: libelles.map((l) => ({ libelle: l })),
+        libelle: libelle,
         description: description,
       },
       skipDuplicates: true,
     });
 
-    await invaliderCache("categorieConcours");
-
+    // await invaliderCache("categorieConcours");
+    const cacheKey = `categorie`;
+    await redis.del(cacheKey);
     return res
       .status(201)
       .json({ message: "Catégorie(s) de concours créée(s) avec succès" });
