@@ -1270,8 +1270,6 @@ export class AdminController {
 
     const [categorie, total] = await Promise.all([
       prisma.categorieConcours.findMany({
-     
-      
         select: {
           id: true,
           libelle: true,
@@ -1299,11 +1297,11 @@ export class AdminController {
   }
 
   static async GetCategorieConcours(req, res) {
-    const page = parseInt(req.query.page) || 1;
-    const limit = 10;
-    const skip = (page - 1) * limit;
+    // const page = parseInt(req.query.page) || 1;
+    // const limit = 10;
+    // const skip = (page - 1) * limit;
 
-    const cacheKey = `categorieConcours:${page}:limit:${limit}`;
+    const cacheKey = `categorieConcours`;
     const cached = await redis.get(cacheKey);
     if (cached) {
       return res.status(200).json(JSON.parse(cached));
@@ -1311,8 +1309,6 @@ export class AdminController {
 
     const [categories, total] = await Promise.all([
       prisma.categorieConcours.findMany({
-        take: limit,
-        skip,
         orderBy: { createdDate: "desc" },
         select: {
           id: true,
@@ -1328,10 +1324,10 @@ export class AdminController {
     }
 
     const response = {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
+      // page,
+      // limit,
+      // total,
+      // totalPages: Math.ceil(total / limit),
       data: categories,
     };
 
@@ -1342,7 +1338,7 @@ export class AdminController {
   static async UpdateCategorieConcours(req, res) {
     const { id_categorie, libelle, description } = req.body;
     let catId;
-    if(typeof id_categorie !== 'number' && typeof id_categorie ==='string'){
+    if (typeof id_categorie !== "number" && typeof id_categorie === "string") {
       catId = parseInt(id_categorie);
     }
     const categorie = await prisma.categorieConcours.findUnique({
@@ -1352,7 +1348,6 @@ export class AdminController {
     if (!categorie) {
       return res.status(404).json({ error: "Aucune catégorie trouvée" });
     }
-
 
     // console.log(req.admin.id_admin)
 
@@ -1366,8 +1361,8 @@ export class AdminController {
       },
     });
 
-    await invaliderCache("categorie");
-    await invaliderCache("categorieConcours");
+    // await invaliderCache("categorie");
+    // await invaliderCache("categorieConcours");
 
     return res.status(200).json({ message: "Catégorie modifiée avec succès" });
   }
@@ -1380,7 +1375,7 @@ export class AdminController {
         .status(400)
         .json({ error: "La référence de l'id est manquante ou invalide" });
     }
-
+    const cacheKey = `categorieConcours`;
     const categorie = await prisma.categorieConcours.findUnique({
       where: { id: id_categorie },
     });
@@ -1391,8 +1386,7 @@ export class AdminController {
 
     await prisma.categorieConcours.delete({ where: { id: id_categorie } });
 
-    await invaliderCache("categorie");
-    await invaliderCache("categorieConcours");
+    await redis.del(cacheKey);
 
     return res.status(200).json({ message: "Catégorie supprimée avec succès" });
   }
@@ -1409,7 +1403,6 @@ export class AdminController {
     } = req.body;
 
     const concoursId = parseInt(id_concours);
-
 
     if (isNaN(concoursId)) {
       return res.status(400).json({ error: "ID de concours invalide" });
@@ -1451,12 +1444,11 @@ export class AdminController {
       return res.status(400).json({ error: "ID de concours invalide" });
     }
 
-
     const cacheKey = `exmamen:${id_concours}`;
 
     const data = await redis.get(cacheKey);
-    if(data){
-      return res.json({data:JSON.parse(data)})
+    if (data) {
+      return res.json({ data: JSON.parse(data) });
     }
     const examens = await prisma.examen.findMany({
       where: { id_concours },
@@ -1484,7 +1476,7 @@ export class AdminController {
       return res.status(404).json({ error: "Examen non trouvé" });
     }
 
-    await redis.set(cachekey,examen,'EX',300)
+    await redis.set(cachekey, JSON.stringify(examen), "EX", 300);
     return res.status(200).json({ data: examen });
   }
 
@@ -1503,7 +1495,7 @@ export class AdminController {
       return res.status(404).json({ error: "Examen introuvable" });
     }
 
-        const cacheKey = `exmamen:${examen.id_concours}`;
+    const cacheKey = `exmamen:${examen.id_concours}`;
 
     await redis.del(cacheKey);
 
@@ -1538,7 +1530,7 @@ export class AdminController {
       return res.status(404).json({ error: "Examen introuvable" });
     }
 
-        const cacheKey = `exmamen:${examen.id_concours}`;
+    const cacheKey = `exmamen:${examen.id_concours}`;
 
     await redis.del(cacheKey);
 
@@ -1565,9 +1557,9 @@ export class AdminController {
       data: { nom, id_centre, quota },
     });
 
-    const cacheKey = `LieuCompo:${lieux.id_lieux}`
+    const cacheKey = `LieuCompo:${lieux.id_lieux}`;
     await redis.del(cacheKey);
-    
+
     return res.status(201).json({
       message: "Lieu de composition ajouté avec succès",
       data: lieux,
@@ -2270,7 +2262,7 @@ export class AdminController {
       },
     });
 
-    await redis.set(cacheKey, inscription, "EX", 300);
+    await redis.set(cacheKey, JSON.stringify(inscription), "EX", 300);
     return res.json({ InscCandidat: inscription });
   }
 
