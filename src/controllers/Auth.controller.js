@@ -181,16 +181,16 @@ export class AuthController {
           // verifier si le user est actif ou il a ete supprimer... si c'est le cas il ne devrais pas se connecter
       // un message d'erreur lui sera envoye pour qu'il contacte le service de maintenance de la platefome
 
-      const result = filterOne(candidat);
-      // console.log('result', result)
-      if (result.success === true) {
-        return res
-          .status(401)
-          .json({
-            error:
-              "Votre compte subi une resctriction .\n veuillez contacter le service de maintenance \n pour plus de renseignement et traitement de votre demande ",
-          });
-      }
+      // const result = filterOne(candidat);
+      // // console.log('result', result)
+      // if (result.success === true) {
+      //   return res
+      //     .status(401)
+      //     .json({
+      //       error:
+      //         "Votre compte subi une resctriction .\n veuillez contacter le service de maintenance \n pour plus de renseignement et traitement de votre demande ",
+      //     });
+      // }
 
     const motDePasseCorrect = await bcrypt.compare(
       mot_de_passe,

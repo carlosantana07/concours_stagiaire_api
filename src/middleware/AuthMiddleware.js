@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
 import { prisma } from "../prisma.js";
-import filterOne from "../utils/filterOne.js";
 
 export class AuthMiddleware {
+
   static async protect(req, res, next) {
     try {
       const token = req.headers.authorization?.split(" ")[1];
@@ -13,9 +13,7 @@ export class AuthMiddleware {
         decoded = jwt.verify(token, process.env.JWT_SECRET);
       } catch (err) {
         if (err.name === "TokenExpiredError") {
-          return res
-            .status(401)
-            .json({ error: "Votre token a expiré, veuillez vous reconnecter" });
+          return res.status(401).json({ error: "Votre token a expiré, veuillez vous reconnecter" });
         }
         return res.status(401).json({ error: "Token invalide" });
       }
@@ -28,15 +26,6 @@ export class AuthMiddleware {
         return res.status(401).json({ error: "Utilisateur introuvable" });
       }
 
-      const result = filterOne(user);
-      // console.log('result', result)
-      if (result.success === true) {
-        return res.status(401).json({
-          error:
-            "Votre compte subi une resctriction .\n veuillez contacter le service de maintenance \n pour plus de renseignement et traitement de votre demande ",
-        });
-      }
-
       req.user = user;
       next();
     } catch (error) {
@@ -47,8 +36,9 @@ export class AuthMiddleware {
 
   static async CompteVerifier(req, res, next) {
     try {
-      const user = req.user;
 
+      const user = req.user;
+z
       if (!user) {
         return res.status(401).json({ error: "Veuillez vous authentifier" });
       }
