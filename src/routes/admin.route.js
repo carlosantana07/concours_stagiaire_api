@@ -21,7 +21,7 @@ router.get("/categories", AdminController.GetCategorie);
 // router.get('/candidats/get-all/c',AdminController.GetAllCandidat)
 
 
-
+router.put("/categories/update-categorie", ...validate(CategorieDto.UpdateCategorie()), AdminController.UpdateCategorieConcours);
 
 router.use(AdminMiddleware.handle);
 
@@ -47,8 +47,8 @@ router.delete('centres/delete-centre/:id_centre',...validate(CentreDto.ValidateD
 
 router.get("/categories/concours", AdminController.GetCategorieConcours);
 router.post("/categories", ...validate(CategorieDto.CreateCategorie()), AdminController.CreateCategorie);
-router.put("/categories/:id_categorie", ...validate(CategorieDto.UpdateCategorie()), AdminController.UpdateCategorieConcours);
-router.delete("/categories/:id_categorie",...validate(CategorieDto.DeleteCategorie()), AdminController.DeleteCategorie);
+// router.put("/categories/update-categorie", ...validate(CategorieDto.UpdateCategorie()), AdminController.UpdateCategorieConcours);
+router.delete("/categories/delete-categorie/:id_categorie",...validate(CategorieDto.DeleteCategorie()), AdminController.DeleteCategorie);
 
 
 router.get("/paiements", AdminController.ListesPaiements);

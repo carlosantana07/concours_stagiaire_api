@@ -5,15 +5,14 @@ const resultat = {
   data: [],
 };
 
-const filterOne = (value, deleted = false) => {
-  if (deleted === false) {
-    return value.delete_at === null;
-  } else {
-    return value.delete_at !== null;
-  }
+const filterOne = (value) => {
 
+  if(value.delete_at === null){
+  resultat.success = false;
+  resultat.message = "utilisateur actif";
+  }
   resultat.success = true;
-  resultat.message = "Donnees filtrer avec succes";
+  resultat.message = "utilisateur supprime";
 
   return resultat;
 };

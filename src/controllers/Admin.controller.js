@@ -1270,8 +1270,8 @@ export class AdminController {
 
     const [categorie, total] = await Promise.all([
       prisma.categorieConcours.findMany({
-        take: limit,
-        skip,
+     
+      
         select: {
           id: true,
           libelle: true,
@@ -1341,21 +1341,27 @@ export class AdminController {
 
   static async UpdateCategorieConcours(req, res) {
     const { id_categorie, libelle, description } = req.body;
-
+    let catId;
+    if(typeof id_categorie !== 'number' && typeof id_categorie ==='string'){
+      catId = parseInt(id_categorie);
+    }
     const categorie = await prisma.categorieConcours.findUnique({
-      where: { id: id_categorie },
+      where: { id: catId },
     });
 
     if (!categorie) {
       return res.status(404).json({ error: "Aucune catégorie trouvée" });
     }
 
+
+    // console.log(req.admin.id_admin)
+
     await prisma.categorieConcours.update({
-      where: { id: id_categorie },
+      where: { id: categorie.id },
       data: {
         libelle: libelle ?? categorie.libelle,
         description: description ?? categorie.description,
-        lastModifiedBy: req.admin.id_admin,
+        // lastModifiedBy: req.admin.id_admin,
         lastModifiedDate: new Date(),
       },
     });

@@ -14,7 +14,7 @@ export class CategorieDto {
 
   static UpdateCategorie() {
     return [
-      body("id")
+      body("id_categorie")
         .notEmpty()
         .withMessage("Id est requis")
         .isInt()
