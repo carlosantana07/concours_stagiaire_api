@@ -1243,7 +1243,6 @@ export class AdminController {
         libelle: libelle,
         description: description,
       },
-      skipDuplicates: true,
     });
 
     // await invaliderCache("categorieConcours");
