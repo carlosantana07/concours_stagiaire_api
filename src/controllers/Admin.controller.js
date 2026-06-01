@@ -1238,7 +1238,7 @@ export class AdminController {
         .json({ message: `Doublons trouvés : ${doublons}` });
     }
 
-    await prisma.categorieConcours.createMany({
+    await prisma.categorieConcours.create({
       data: {
         libelle: libelle,
         description: description,
