@@ -1,4 +1,4 @@
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 
 export class CentreDto {
   static ValidateCreateCentre() {
@@ -13,7 +13,7 @@ export class CentreDto {
 
   static ValidateUpdateCentre() {
     return [
-      body("id_centre")
+      param("id_centre")
         .notEmpty()
         .withMessage("le nom du centre est requis")
         .isInt()
@@ -29,7 +29,7 @@ export class CentreDto {
 
   static ValidateDeleteCentre() {
     return [
-      body("id_centre")
+      param("id_centre")
         .notEmpty()
         .withMessage("le nom du centre est requis")
         .isInt()

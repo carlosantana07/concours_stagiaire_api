@@ -1,4 +1,4 @@
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 
 export class AdminDto {
   static ValidateLogin() {
@@ -25,4 +25,26 @@ export class AdminDto {
       body('nom').isString().withMessage('le centre dois etre une chaine').notEmpty().withMessage('le nom du centre est requis')
     ];
   }
+
+  static ValidateInscriptionUpdate (){
+    return[
+   
+        body('id_inscription').isInt().notEmpty('la reference de l\'inscription ne doit pas etre nulle'),
+        body('id_candidat').isUUID().notEmpty('la reference du candidat ne doit pas etre nul'),
+        body('id_concours').isInt().notEmpty('la reference du concours ne doit pas etre nul'),
+        body('id_centre').isInt().notEmpty('la reference du concours ne doit pas etre nul'),
+      
+    ]
+  }
+
+  static ValidateDeleteInscription(){
+    return [
+      param('id_inscription').isInt().notEmpty('la reference de l\'inscription ne doit pas etre nulle'),
+    ]
+  }
+
+  
+  
+
+
 }

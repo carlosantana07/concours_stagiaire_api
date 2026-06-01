@@ -1,4 +1,4 @@
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 
 export class CategorieDto {
   static CreateCategorie() {
@@ -25,11 +25,10 @@ export class CategorieDto {
   // au cas ou le frontend m'envoi la categorie par body  au lieu de params
   static DeleteCategorie() {
     return [
-      body("id_categorie")
+      param("id_categorie")
         .notEmpty()
-        .withMessage("Id est requis")
+        .withMessage("la reference de la categorie est requise")
         .isInt()
-        .withMessage("le type ne correspond pas au type attendu"),
     ];
   }
 }

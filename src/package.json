@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+     "test": "jest",
     "prisma:generate": "./node_modules/.bin/prisma generate",
     "prisma:migrate": "./node_modules/.bin/prisma migrate dev",
     "prisma:deploy": "./node_modules/.bin/prisma migrate deploy",
@@ -43,6 +44,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "jest": "^30.4.2",
     "nodemon": "^3.1.14",
     "prisma": "^5.22.0"
   },

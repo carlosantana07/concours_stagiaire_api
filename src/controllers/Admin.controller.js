@@ -15,6 +15,9 @@ import path from "path";
 import { response } from "express";
 import fs from "fs";
 import { type } from "os";
+import { error } from "console";
+import filterDeleted from "../utils/filter.js";
+import Redis from "ioredis";
 
 async function invaliderCache(prefixe, nbPages = 10) {
   for (let page = 1; page <= nbPages; page++) {
@@ -266,6 +269,65 @@ export class AdminController {
     const nouveauCentre = await prisma.centre.create({ data: { nom } });
 
     return res.status(201).json(nouveauCentre);
+  }
+
+  static async UpdateCentre(req, res) {
+    const { id_centre } = req.params;
+    const { nom } = req.body;
+
+    if (!id_centre) {
+      return res
+        .status(400)
+        .json({ error: "Les references  du centre sont incorrect" });
+    }
+    if (!nom) {
+      return res
+        .status(400)
+        .json({ error: "tous les champs doivent etre remplis" });
+    }
+    const centre = await prisma.centre.findFirst({
+      where: {
+        id_centre,
+      },
+    });
+
+    if (!centre) {
+      return res.status(404).json({ error: "Aucun centre trouvee" });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const maj = tx.centre.update({
+        where: {
+          id_centre: centre.id_centre,
+        },
+        data: {
+          nom: nom ?? centre.nom,
+        },
+      });
+    });
+
+    return res.status(200).json({ message: "Le centre a ete mise a jour" });
+  }
+
+  static async DeleteCentre(req, res) {
+    const { id_centre } = req.params;
+    if (!id_centre) {
+      return res
+        .status(400)
+        .json({ error: "Les references  du centre sont incorrect" });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      tx.centre.delete({
+        where: {
+          id_centre,
+        },
+      });
+    });
+
+    return res
+      .status(200)
+      .json({ message: "Le centre a ete supprimer avec success" });
   }
 
   static async CreateConcours(req, res) {
@@ -535,12 +597,10 @@ export class AdminController {
     const isIncludes = status.includes(statusConcours);
     console.log(isIncludes);
     if (!isIncludes) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Le status du concours est errone, veuillez modifier manuellement",
-        });
+      return res.status(400).json({
+        error:
+          "Le status du concours est errone, veuillez modifier manuellement",
+      });
     }
 
     const index = status.indexOf(statusConcours);
@@ -570,11 +630,9 @@ export class AdminController {
       });
     });
 
-    return res
-      .status(200)
-      .json({
-        message: `Status mis a jour avec success ::index : ${index}  :: status ${statusConcours}`,
-      });
+    return res.status(200).json({
+      message: `Status mis a jour avec success ::index : ${index}  :: status ${statusConcours}`,
+    });
   }
 
   static async SearchConcours(req, res) {
@@ -666,9 +724,8 @@ export class AdminController {
 
     const cacheKey = `candidat`;
     await redis.del(cacheKey);
-   
-      // await redis.del(`candida);
-    
+
+    // await redis.del(`candida);
 
     return res.status(200).json({ message: "Candidat supprimé avec succès" });
   }
@@ -684,18 +741,18 @@ export class AdminController {
 
     const cached = await redis.get(cachekey);
     if (cached) {
-      return res.status(200).json(JSON.parse(cached));
+      return res.status(200).json({ candidat: JSON.parse(cached) });
     }
 
     // recuperer tous les candidats et les mettres en caache
 
     const candidat = await prisma.candidat.findMany({
-   
       select: {
         id_candidat: true,
         nom: true,
         prenom: true,
         type_candidat: true,
+        delete_at: true,
       },
     });
 
@@ -704,7 +761,7 @@ export class AdminController {
     }
     // reucperer les inscriptions liee a cet l'utilisateur
 
-    console.log(candidat)
+    // console.log(candidat);
     // let resp = [];
 
     // for (const cand of candidat) {
@@ -742,9 +799,10 @@ export class AdminController {
     //   });
     // }
 
-    await redis.set(cachekey, JSON.stringify(candidat), "EX", 60);
+    const filterD = filterDeleted(candidat, false).data;
+    await redis.set(cachekey, JSON.stringify(filterD), "EX", 60);
 
-    return res.status(200).json({candidat: candidat });
+    return res.status(200).json({ candidat: filterD });
   }
 
   static async DetailCandidat(req, res) {
@@ -864,7 +922,7 @@ export class AdminController {
 
     // mettre a jour le candidat
 
-    const hash = await bcrypt.hash (mot_de_passe,10)
+    const hash = await bcrypt.hash(mot_de_passe, 10);
     await prisma.$transaction(async (tx) => {
       const UpdateCandidat = await tx.candidat.update({
         where: {
@@ -1164,7 +1222,7 @@ export class AdminController {
   }
 
   static async CreateCategorie(req, res) {
-    const { libelle } = req.body;
+    const { libelle, description } = req.body;
 
     const libelles = (Array.isArray(libelle) ? libelle : libelle.split(","))
       .map((l) => l.trim())
@@ -1185,7 +1243,10 @@ export class AdminController {
     }
 
     await prisma.categorieConcours.createMany({
-      data: libelles.map((l) => ({ libelle: l })),
+      data: {
+        libelle: libelles.map((l) => ({ libelle: l })),
+        description: description,
+      },
       skipDuplicates: true,
     });
 
@@ -1197,11 +1258,11 @@ export class AdminController {
   }
 
   static async GetCategorie(req, res) {
-    const page = parseInt(req.query.page) || 1;
-    const limit = 10;
-    const skip = (page - 1) * limit;
+    // const page = parseInt(req.query.page) || 1;
+    // const limit = 10;
+    // const skip = (page - 1) * limit;
 
-    const cacheKey = `categorie:page:${page}:limit:${limit}`;
+    const cacheKey = `categorie`;
     const cached = await redis.get(cacheKey);
     if (cached) {
       return res.status(200).json(JSON.parse(cached));
@@ -1226,10 +1287,10 @@ export class AdminController {
     }
 
     const response = {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
+      // page,
+      // limit,
+      // total,
+      // totalPages: Math.ceil(total / limit),
       data: categorie,
     };
 
@@ -1343,9 +1404,14 @@ export class AdminController {
 
     const concoursId = parseInt(id_concours);
 
+
     if (isNaN(concoursId)) {
       return res.status(400).json({ error: "ID de concours invalide" });
     }
+
+    const cacheKey = `exmamen:${id_concours}`;
+
+    await redis.del(cacheKey);
 
     const concours = await prisma.concours.findUnique({
       where: { id_concours: concoursId },
@@ -1379,6 +1445,13 @@ export class AdminController {
       return res.status(400).json({ error: "ID de concours invalide" });
     }
 
+
+    const cacheKey = `exmamen:${id_concours}`;
+
+    const data = await redis.get(cacheKey);
+    if(data){
+      return res.json({data:JSON.parse(data)})
+    }
     const examens = await prisma.examen.findMany({
       where: { id_concours },
       orderBy: { date_examen: "asc" },
@@ -1405,6 +1478,7 @@ export class AdminController {
       return res.status(404).json({ error: "Examen non trouvé" });
     }
 
+    await redis.set(cachekey,examen,'EX',300)
     return res.status(200).json({ data: examen });
   }
 
@@ -1422,6 +1496,10 @@ export class AdminController {
     if (!examen) {
       return res.status(404).json({ error: "Examen introuvable" });
     }
+
+        const cacheKey = `exmamen:${examen.id_concours}`;
+
+    await redis.del(cacheKey);
 
     const updated = await prisma.examen.update({
       where: { id_examen },
@@ -1454,16 +1532,19 @@ export class AdminController {
       return res.status(404).json({ error: "Examen introuvable" });
     }
 
+        const cacheKey = `exmamen:${examen.id_concours}`;
+
+    await redis.del(cacheKey);
+
     await prisma.examen.delete({ where: { id_examen } });
 
     return res.status(200).json({ message: "Examen supprimé avec succès" });
   }
 
-  static async getAllExam (req,res){
-    
+  static async getAllExam(req, res) {
     const examen = await prisma.examen.findMany();
     return res.status(200).json(examen);
-  } 
+  }
 
   static async createLieuCompo(req, res) {
     const { nom, id_centre, quota } = req.body;
@@ -1478,6 +1559,9 @@ export class AdminController {
       data: { nom, id_centre, quota },
     });
 
+    const cacheKey = `LieuCompo:${lieux.id_lieux}`
+    await redis.del(cacheKey);
+    
     return res.status(201).json({
       message: "Lieu de composition ajouté avec succès",
       data: lieux,
@@ -1735,7 +1819,7 @@ export class AdminController {
     });
   }
 
-  static async InscrireCandidат(req, res) {
+  static async InscrireCandidаt(req, res) {
     const { id_candidat } = req.body;
     const id_concours = parseInt(req.body.id_concours);
     const id_centre = parseInt(req.body.id_centre);
@@ -2059,6 +2143,129 @@ export class AdminController {
     // generer une listes des  concours avec les informations du pays etc...
 
     // await GenererListConcours(concours,res)
+  }
+
+  static async UpdateCandidatInscription(req, res) {
+    const { id_inscription, id_candidat, id_concours, id_centre } = req.body;
+    if (!id_inscription) {
+      return res
+        .status(400)
+        .json({ error: "La ref de l'inscription ne dois pas etre nulle" });
+    }
+    if (!id_candidat) {
+      return res
+        .status(400)
+        .json({ error: "La ref du candidat ne dois pas etre nulle" });
+    }
+    if (!id_concours) {
+      return res
+        .status(400)
+        .json({ error: "La ref du concours ne dois pas etre nulle" });
+    }
+    if (!id_centre) {
+      return res
+        .status(400)
+        .json({ error: "La ref du centre ne dois pas etre nulle" });
+    }
+
+    const inscription = await prisma.inscription.findFirst({
+      where: {
+        id_candidat: id_candidat,
+        id_inscription: id_inscription,
+        id_concours: id_concours,
+        id_centre: id_centre,
+      },
+    });
+
+    if (!inscription) {
+      return res.status(404).json({ error: "Aucune information trouvee" });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const updateInscription = await tx.inscription.update({
+        where: {
+          id_centre,
+        },
+        data: {
+          id_centre: id_centre ?? inscription.id_centre,
+          id_concours: id_concours ?? inscription.id_concours,
+          update_at: new Date(),
+        },
+      });
+      return updateInscription;
+    });
+
+    return res.json({ message: "Inscriptions modifier avec succes" });
+  }
+
+  static async DeleteCandidatInscription(req, res) {
+    const { id_inscription } = req.params;
+
+    if (!id_inscription) {
+      return res
+        .status(400)
+        .json({ error: "La ref de l'inscription ne dois pas etre nulle" });
+    }
+
+    const inscription = await prisma.inscription.findUnique({
+      where: {
+        id_inscription: id_inscription,
+      },
+    });
+    if (!inscription) {
+      return res.status(404).json({ error: "Aucune Inscription trouvee" });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      //  return await tx.inscription.delete({
+      //   where:{id_inscription: inscription.id_inscription}
+      //  })
+
+      return await tx.inscription.update({
+        where: { id_inscription: inscription.id_inscription },
+        data: {
+          delete_at: true,
+        },
+      });
+    });
+
+    return res
+      .status(200)
+      .json({ message: "Inscription supprimer avec succes " });
+  }
+
+  static async InscrtiptionCandidat(req, res) {
+    const { id_candidat } = req.params;
+    if (!id_candidat) {
+      return res
+        .status(400)
+        .json({ error: "Les references du candidats sont manquantes" });
+    }
+    // les donnner de caches
+    const cacheKey = `inscription:candidat:${id_candidat}`;
+    const data = await redis.get(cacheKey);
+
+    if (data) {
+      return res.json({ InscCandidat: JSON.parse(data) });
+    }
+
+    const candidat = await prisma.candidat.findUnique({
+      where: {
+        id_candidat,
+      },
+    });
+    if (!candidat) {
+      return res.status(404).json({ error: "Aucun candidat trouvee" });
+    }
+
+    const inscription = await prisma.inscription.findMany({
+      where: {
+        id_candidat: candidat.id_candidat,
+      },
+    });
+
+    await redis.set(cacheKey, inscription, "EX", 300);
+    return res.json({ InscCandidat: inscription });
   }
 
   static async SortieResultat(req, res) {

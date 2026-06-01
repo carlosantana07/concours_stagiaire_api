@@ -1,4 +1,4 @@
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 
 export class PaymentDto {
   static validatePayement() {
@@ -16,6 +16,11 @@ export class PaymentDto {
         .withMessage("un concours est requis pour effectuer un paiement")
         .isInt()
         .withMessage("la donnee du concours ne correspond pas au type attendu"),
+    ];
+  }
+  static ValidateDetailPayment(){
+    return [
+      param('id_paiement').notEmpty().withMessage('La reference du paiement est requise')
     ];
   }
 }
