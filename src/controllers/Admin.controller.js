@@ -2338,7 +2338,11 @@ export class AdminController {
   }
 
   static async GetAllCentre (req,res) {
-   const centre = await prisma.centre.findMany({});
+   const centre = await prisma.centre.findMany({
+    orderBy:{
+      create_at:'desc'
+    }
+   });
 
    return res.json({data:centre})
 
