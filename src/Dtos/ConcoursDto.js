@@ -61,7 +61,7 @@ export class ConcoursDto {
         .optional()
         .withMessage("le type du concours ne dois pas etre vide"),
       body("nom")
-        .isString("le nom du concours dois etre en chaine de caractere")
+        .isString()
         .optional()
         .withMessage("Nom du concours ne dois pas etre vide"),
 
@@ -82,19 +82,21 @@ export class ConcoursDto {
 
       body("date_debut")
         .optional()
-        .isDate()
+        .isISO8601()
         .withMessage("date debut doit etre une date"),
 
       body("date_fin")
         .optional()
-        .isDate()
+        .isISO8601()
         .withMessage("date fin doit etre une date"),
 
       param("id_concours")
         .notEmpty()
         .withMessage("Les references du concours sont requises"),
       //Hugutte devrais typer le status_concours pour que je puisse utiliser sanns soucis
-      body("statut_concours").optional,
+      body("statut_concours")
+        .optional()
+        .isIn(["EN_ATTENTE", "OUVERT", "FERME"]),
     ];
   }
 
