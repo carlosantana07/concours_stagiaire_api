@@ -413,6 +413,9 @@ export class AdminController {
           date_debut: true,
           date_fin: true,
           nombre_postes: true,
+          description:true,
+          annee:true,
+          frais_inscription:true,
           _count: { select: { inscription: true } },
           categorie: { select: { id: true, libelle: true, description: true } },
         },
@@ -2263,6 +2266,46 @@ export class AdminController {
 
     await redis.set(cacheKey, JSON.stringify(inscription), "EX", 300);
     return res.json({ InscCandidat: inscription });
+  }
+
+  static async UpdateAdmin(req,res){
+    const{id_admin} = req.params;
+    const {nom, prenom,  role} = req.body;
+    if(!id_admin){return res.status(400).json({error:'La reference de l\'admin est requise'})};
+
+    const admin = await prisma.admin.findUnique({
+      where:{
+        id_admin:id_admin
+      },
+ 
+    });
+
+    if(!admin){
+      return res.status(404).json({error:"Aucun administrateur trouve"})
+    }
+    
+   await prisma.$transaction(async(tx)=>{
+    await tx.admin.update({
+      where:{
+        id_admin:admin.id_admin
+      },
+      data:{
+        nom: nom ?? admin.nom,
+        prenom: prenom ?? admin.prenom,
+        role: role
+      }
+    })
+   });
+
+   return res.status(200).json({message:"Admin modifier avec succes"});
+
+  }
+
+  static async GetAllCentre (req,res) {
+   const centre = await prisma.centre.findMany({});
+
+   return res.json({data:centre})
+
   }
 
   static async SortieResultat(req, res) {

@@ -44,7 +44,11 @@ export class AdminDto {
   }
 
   
-  
+  static ValidateUpdateAdmin (){
+    return [
+      param('id_admin').notEmpty().withMessage('La reference de l\'admin est requise')
+    ]
+  }
 
 
 }
