@@ -122,6 +122,7 @@ export class AdminController {
       paiementsRecents,
       concoursParType,
       inscriptionsParJour,
+      inscription
     ] = await Promise.all([
       prisma.concours.count(),
       prisma.concours.count({ where: { statut_concours: "ouvert" } }),
@@ -212,7 +213,30 @@ export class AdminController {
           },
         },
       }),
+      prisma.inscription.findMany({})
     ]);
+// incription par concours ....
+// on prend chauqe concours puis verifier le nombre dans les inscriptions
+  const IPC ={};
+  // chaque trois jours 
+// 
+  // const aujourdui = new Date();
+  // aujourdui.setHours(0 ,0 ,0 ,0);
+
+  // const hier = new Date(aujourdui);
+  // hier.setDate(hier.getDate()-1)
+
+// // 
+// console.log(aujourdui.getDate())
+// console.log(hier)
+///
+    const data =  {
+      succ = inscription.filter((f)=>{
+      return[
+         pass= new Date(f.date_inscription).setHours(0,0,0,0) ===  hier
+      ]
+      })
+    }
 
     return res.status(200).json({
       success: true,
@@ -275,19 +299,27 @@ export class AdminController {
     const { id_centre } = req.params;
     const { nom } = req.body;
 
+
+    let id_c = id_centre;
+    
+
     if (!id_centre) {
       return res
         .status(400)
         .json({ error: "Les references  du centre sont incorrect" });
     }
-    if (!nom) {
-      return res
-        .status(400)
-        .json({ error: "tous les champs doivent etre remplis" });
+    // if (!nom) {
+    //   return res
+    //     .status(400)
+    //     .json({ error: "tous les champs doivent etre remplis" });
+    // }
+
+    if(typeof id_centre ==='string'){
+      id_c = parseInt(id_centre);
     }
     const centre = await prisma.centre.findFirst({
       where: {
-        id_centre,
+        id_centre:id_c,
       },
     });
 
@@ -296,7 +328,7 @@ export class AdminController {
     }
 
     await prisma.$transaction(async (tx) => {
-      const maj = tx.centre.update({
+      const maj =await tx.centre.update({
         where: {
           id_centre: centre.id_centre,
         },
@@ -304,6 +336,7 @@ export class AdminController {
           nom: nom ?? centre.nom,
         },
       });
+      return maj;
     });
 
     return res.status(200).json({ message: "Le centre a ete mise a jour" });
@@ -316,11 +349,14 @@ export class AdminController {
         .status(400)
         .json({ error: "Les references  du centre sont incorrect" });
     }
-
+        let id_c = id_centre;
+  if(typeof id_centre ==='string'){
+      id_c = parseInt(id_centre);
+    }
     await prisma.$transaction(async (tx) => {
-      tx.centre.delete({
+    await tx.centre.delete({
         where: {
-          id_centre,
+          id_centre:id_c,
         },
       });
     });
