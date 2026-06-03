@@ -21,7 +21,7 @@ router.get("/categories", AdminController.GetCategorie);
 // router.get('/candidats/get-all/c',AdminController.GetAllCandidat)
 
 
-router.get("/centres/get-all-centre",AdminController.GetAllCentre);
+
 
 router.use(AdminMiddleware.handle);
 
@@ -41,7 +41,7 @@ router.patch('/concours/auto-switch-status',AdminController.AutoSwitch);
 router.post("/centres/create", ...validate(AdminDto.ValidateCreateCentre()), AdminController.CreateCentre);
 router.put('/centres/update-centre/:id_centre',...validate(CentreDto.ValidateUpdateCentre()),AdminController.UpdateCentre);
 router.delete('centres/delete-centre/:id_centre',...validate(CentreDto.ValidateDeleteCentre()),AdminController.DeleteCentre);
-
+router.get("/centres/get-all-centre",AdminController.GetAllCentre);
 
 
 
