@@ -230,13 +230,13 @@ export class AdminController {
 // console.log(aujourdui.getDate())
 // console.log(hier)
 ///
-    const data =  {
-      succ = inscription.filter((f)=>{
-      return[
-         pass= new Date(f.date_inscription).setHours(0,0,0,0) ===  hier
-      ]
-      })
-    }
+    // const data =  {
+    //   succ = inscription.filter((f)=>{
+    //   return[
+    //      pass= new Date(f.date_inscription).setHours(0,0,0,0) ===  hier
+    //   ]
+    //   })
+    // }
 
     return res.status(200).json({
       success: true,
