@@ -129,12 +129,12 @@ export class AdminController {
       prisma.inscription.count({ where: { statut_inscription: "EN_ATTENTE" } }),
       prisma.inscription.count({ where: { statut_inscription: "VALIDEE" } }),
       prisma.inscription.count({ where: { statut_inscription: "ANNULEE" } }),
-      prisma.candidat.count({ where: { deletedAt: null } }),
+      prisma.candidat.count({ where: { delete_at: null } }),
       prisma.candidat.count({
-        where: { type_candidat: "DIRECT", deletedAt: null },
+        where: { type_candidat: "DIRECT", delete_at: null },
       }),
       prisma.candidat.count({
-        where: { type_candidat: "PROFESSIONNEL", deletedAt: null },
+        where: { type_candidat: "PROFESSIONNEL", delete_at: null },
       }),
       prisma.paiement.count(),
       prisma.paiement.count({ where: { statut_paiement: "REUSSI" } }),
@@ -684,7 +684,7 @@ export class AdminController {
 
     const candidat = await prisma.candidat.findMany({
       where: {
-        deletedAt: null,
+        delete_at: null,
         ...(nom && { nom: { contains: nom, mode: "insensitive" } }),
         ...(prenom && { prenom: { contains: prenom, mode: "insensitive" } }),
         ...(sexe && { sexe }),
@@ -724,7 +724,7 @@ export class AdminController {
 
     await prisma.candidat.update({
       where: { id_candidat },
-      data: { deletedAt: new Date() },
+      data: { delete_at: new Date() },
     });
 
     const cacheKey = `candidat`;

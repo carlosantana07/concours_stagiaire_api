@@ -22,11 +22,11 @@ router.get("/categories", AdminController.GetCategorie);
 
 
 
-
+router.get("/dashboard", AdminController.Dashboard);
 router.use(AdminMiddleware.handle);
 
 
-router.get("/dashboard", AdminController.Dashboard);
+
 
 
 router.post("/create-concours",...validate(ConcoursDto.ValidateCreateConcours()), AdminController.CreateConcours);
