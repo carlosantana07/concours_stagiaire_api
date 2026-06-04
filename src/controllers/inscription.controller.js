@@ -1,13 +1,11 @@
-import { prisma }          from "../prisma.js";
+import { prisma } from "../prisma.js";
 import { generateReceipt } from "../services/Upload-file.service.js";
 
 export class InscriptionController {
-
-
   static async sInscrire(req, res) {
     const { id_candidat } = req.user;
-    const id_concours     = parseInt(req.body.id_concours);
-    const id_centre       = parseInt(req.body.id_centre);
+    const id_concours = parseInt(req.body.id_concours);
+    const id_centre = parseInt(req.body.id_centre);
 
     if (!id_candidat) {
       return res.status(401).json({ error: "Non autorisé" });
@@ -36,8 +34,8 @@ export class InscriptionController {
     }
 
     const aujourd_hui = new Date();
-    const dateDebut   = new Date(concours.date_debut);
-    const dateFin     = new Date(concours.date_fin);
+    const dateDebut = new Date(concours.date_debut);
+    const dateFin = new Date(concours.date_fin);
 
     aujourd_hui.setHours(0, 0, 0, 0);
     dateDebut.setHours(0, 0, 0, 0);
@@ -64,12 +62,13 @@ export class InscriptionController {
     });
 
     if (dejaInscrit) {
-      const messageStatut = dejaInscrit.statut_inscription === "VALIDEE"
-        ? "Vous êtes déjà inscrit et votre paiement est validé"
-        : "Vous avez déjà une inscription en attente de paiement";
+      const messageStatut =
+        dejaInscrit.statut_inscription === "VALIDEE"
+          ? "Vous êtes déjà inscrit et votre paiement est validé"
+          : "Vous avez déjà une inscription en attente de paiement";
 
       return res.status(409).json({
-        error:          messageStatut,
+        error: messageStatut,
         id_inscription: dejaInscrit.id_inscription,
       });
     }
@@ -79,11 +78,11 @@ export class InscriptionController {
         statut_inscription: "EN_ATTENTE",
         candidat: { connect: { id_candidat } },
         concours: { connect: { id_concours } },
-        centre:   { connect: { id_centre } },
+        centre: { connect: { id_centre } },
       },
       select: {
-        id_inscription:     true,
-        date_inscription:   true,
+        id_inscription: true,
+        date_inscription: true,
         statut_inscription: true,
         concours: {
           select: { nom: true, frais_inscription: true },
@@ -95,26 +94,30 @@ export class InscriptionController {
     });
 
     if (!inscription) {
-      return res.status(500).json({ error: "Échec de la création de l'inscription" });
+      return res
+        .status(500)
+        .json({ error: "Échec de la création de l'inscription" });
     }
 
+    const cacheKey = `InscriptionAll`;
+
+    await redis.del(cacheKey);
     return res.status(201).json({
       message: "Inscription créée — en attente de paiement",
       data: {
-        id_inscription:     inscription.id_inscription,
-        date_inscription:   inscription.date_inscription,
+        id_inscription: inscription.id_inscription,
+        date_inscription: inscription.date_inscription,
         statut_inscription: inscription.statut_inscription,
-        concours:           inscription.concours,
-        centre:             inscription.centre,
-        prochaine_etape:    "Effectuez le paiement pour confirmer votre dossier",
+        concours: inscription.concours,
+        centre: inscription.centre,
+        prochaine_etape: "Effectuez le paiement pour confirmer votre dossier",
       },
     });
   }
 
-
   static async getInscription(req, res) {
     const { id_candidat } = req.user;
-    const id_inscription  = parseInt(req.params.id_inscription);
+    const id_inscription = parseInt(req.params.id_inscription);
 
     if (!id_candidat) {
       return res.status(401).json({ error: "Non autorisé" });
@@ -127,16 +130,16 @@ export class InscriptionController {
     const inscription = await prisma.inscription.findFirst({
       where: { id_inscription, id_candidat },
       select: {
-        id_inscription:     true,
-        date_inscription:   true,
+        id_inscription: true,
+        date_inscription: true,
         statut_inscription: true,
         concours: {
           select: {
-            nom:               true,
-            type:              true,
+            nom: true,
+            type: true,
             frais_inscription: true,
-            date_debut:        true,
-            date_fin:          true,
+            date_debut: true,
+            date_fin: true,
           },
         },
         centre: {
@@ -144,11 +147,11 @@ export class InscriptionController {
         },
         paiement: {
           select: {
-            statut_paiement:       true,
-            mode_paiement:         true,
-            montant:               true,
+            statut_paiement: true,
+            mode_paiement: true,
+            montant: true,
             reference_transaction: true,
-            date_paiement:         true,
+            date_paiement: true,
           },
           orderBy: { date_paiement: "desc" },
           take: 1,
@@ -165,11 +168,11 @@ export class InscriptionController {
     return res.status(200).json({
       message: "Inscription récupérée",
       data: {
-        id_inscription:      inscription.id_inscription,
-        date_inscription:    inscription.date_inscription,
-        statut_inscription:  inscription.statut_inscription,
-        concours:            inscription.concours,
-        centre:              inscription.centre,
+        id_inscription: inscription.id_inscription,
+        date_inscription: inscription.date_inscription,
+        statut_inscription: inscription.statut_inscription,
+        concours: inscription.concours,
+        centre: inscription.centre,
         paiement,
         recepisse_disponible: paiement?.statut_paiement === "REUSSI",
       },

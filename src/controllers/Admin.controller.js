@@ -1928,6 +1928,9 @@ export class AdminController {
       },
     });
 
+    const cacheKey = `InscriptionAll`;
+
+    await redis.del(cacheKey);
     return res.status(201).json({
       message: "Inscription créée — en attente de paiement",
       data: {
@@ -2346,6 +2349,11 @@ export class AdminController {
   }
 
   static async GetAllInscription(req, res) {
+    const cacheKey = `InscriptionAll`;
+    const data = await redis.get(cacheKey);
+    if (data) {
+      return res.json({ data: JSON.parse(data) });
+    }
     const insc = await prisma.inscription.findMany({
       select: {
         id_inscription: true,
@@ -2354,20 +2362,49 @@ export class AdminController {
         statut_inscription: true,
         candidat: {
           select: {
+            id_candidat: true,
             nom: true,
             prenom: true,
           },
         },
-        paiement: {
+        concours: {
           select: {
-            id_paiement: true,
-            mode_paiement: true,
+            id_concours: true,
+            nom: true,
           },
         },
+        // paiement: {
+        //   select: {
+        //     id_paiement: true,
+        //     mode_paiement: true,
+        //   },
+        // },
       },
     });
 
-    return res.json({ data: insc });
+    const grouped = insc.reduce((acc, ins) => {
+      const id = ins.candidat.id_candidat;
+
+      if (!acc[id]) {
+        acc[id] = {
+          candidat: ins.candidat,
+          inscriptions: [],
+        };
+      }
+
+      acc[id].inscriptions.push({
+        id_inscription: ins.id_inscription,
+        date_inscription: ins.date_inscription,
+        statut_inscription: ins.statut_inscription,
+        concours: ins.concours,
+      });
+
+      return acc;
+    }, {});
+
+    await redis.set(cacheKey, JSON.stringify(grouped), "EX", 300);
+
+    return res.json({ data: grouped });
   }
 
   // static asyncUpdateInscription(req,res){
@@ -2394,16 +2431,24 @@ export class AdminController {
     if (typeof id_inscription && typeof id_inscription !== "number") {
       valid_id = parseInt(id_inscription);
     } else {
-      return res
-        .status(400)
-        .json({
-          error: "Le type de la reference de l'inscription est invalide",
-        });
+      return res.status(400).json({
+        error: "Le type de la reference de l'inscription est invalide",
+      });
+    }
+
+    // cache
+
+    const cacheKey = `inscription:${valid_id}`;
+
+    const data = await redis.get(cacheKey);
+
+    if (data) {
+      return res.json({ data: JSON.parse(data) });
     }
 
     const inscription = await prisma.inscription.findFirst({
       where: {
-        id_inscription:valid_id,
+        id_inscription: valid_id,
       },
 
       select: {
@@ -2441,7 +2486,8 @@ export class AdminController {
       return res.status(404).json({ error: "Aucune inscription trouvee" });
     }
 
-    return res.json({data:inscription})
+    await redis.set(cacheKey, JSON.stringify(inscription), "EX", 120);
+    return res.json({ data: inscription });
   }
 
   static async SortieResultat(req, res) {
