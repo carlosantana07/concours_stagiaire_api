@@ -122,7 +122,7 @@ export class AdminController {
       paiementsRecents,
       concoursParType,
       inscriptionsParJour,
-      inscription
+      inscription,
     ] = await Promise.all([
       prisma.concours.count(),
       prisma.concours.count({ where: { statut_concours: "ouvert" } }),
@@ -213,23 +213,23 @@ export class AdminController {
           },
         },
       }),
-      prisma.inscription.findMany({})
+      prisma.inscription.findMany({}),
     ]);
-// incription par concours ....
-// on prend chauqe concours puis verifier le nombre dans les inscriptions
-  const IPC ={};
-  // chaque trois jours 
-// 
-  // const aujourdui = new Date();
-  // aujourdui.setHours(0 ,0 ,0 ,0);
+    // incription par concours ....
+    // on prend chauqe concours puis verifier le nombre dans les inscriptions
+    const IPC = {};
+    // chaque trois jours
+    //
+    // const aujourdui = new Date();
+    // aujourdui.setHours(0 ,0 ,0 ,0);
 
-  // const hier = new Date(aujourdui);
-  // hier.setDate(hier.getDate()-1)
+    // const hier = new Date(aujourdui);
+    // hier.setDate(hier.getDate()-1)
 
-// // 
-// console.log(aujourdui.getDate())
-// console.log(hier)
-///
+    // //
+    // console.log(aujourdui.getDate())
+    // console.log(hier)
+    ///
     // const data =  {
     //   succ = inscription.filter((f)=>{
     //   return[
@@ -299,9 +299,7 @@ export class AdminController {
     const { id_centre } = req.params;
     const { nom } = req.body;
 
-
     let id_c = id_centre;
-    
 
     if (!id_centre) {
       return res
@@ -314,12 +312,12 @@ export class AdminController {
     //     .json({ error: "tous les champs doivent etre remplis" });
     // }
 
-    if(typeof id_centre ==='string'){
+    if (typeof id_centre === "string") {
       id_c = parseInt(id_centre);
     }
     const centre = await prisma.centre.findFirst({
       where: {
-        id_centre:id_c,
+        id_centre: id_c,
       },
     });
 
@@ -328,7 +326,7 @@ export class AdminController {
     }
 
     await prisma.$transaction(async (tx) => {
-      const maj =await tx.centre.update({
+      const maj = await tx.centre.update({
         where: {
           id_centre: centre.id_centre,
         },
@@ -349,14 +347,14 @@ export class AdminController {
         .status(400)
         .json({ error: "Les references  du centre sont incorrect" });
     }
-        let id_c = id_centre;
-  if(typeof id_centre ==='string'){
+    let id_c = id_centre;
+    if (typeof id_centre === "string") {
       id_c = parseInt(id_centre);
     }
     await prisma.$transaction(async (tx) => {
-    await tx.centre.delete({
+      await tx.centre.delete({
         where: {
-          id_centre:id_c,
+          id_centre: id_c,
         },
       });
     });
@@ -449,9 +447,9 @@ export class AdminController {
           date_debut: true,
           date_fin: true,
           nombre_postes: true,
-          description:true,
-          annee:true,
-          frais_inscription:true,
+          description: true,
+          annee: true,
+          frais_inscription: true,
           _count: { select: { inscription: true } },
           categorie: { select: { id: true, libelle: true, description: true } },
         },
@@ -551,9 +549,7 @@ export class AdminController {
       },
     });
 
-
-      await redis.del(`concours`);
-    
+    await redis.del(`concours`);
 
     return res.status(200).json({
       message: "Les informations du concours ont été mises à jour",
@@ -583,7 +579,7 @@ export class AdminController {
       await tx.concours.delete({ where: { id_concours } });
     });
 
-    await redis.del('concours')
+    await redis.del("concours");
 
     return res.status(200).json({ message: "Concours supprimé avec succès" });
   }
@@ -2304,48 +2300,148 @@ export class AdminController {
     return res.json({ InscCandidat: inscription });
   }
 
-  static async UpdateAdmin(req,res){
-    const{id_admin} = req.params;
-    const {nom, prenom,  role} = req.body;
-    if(!id_admin){return res.status(400).json({error:'La reference de l\'admin est requise'})};
+  static async UpdateAdmin(req, res) {
+    const { id_admin } = req.params;
+    const { nom, prenom, role } = req.body;
+    if (!id_admin) {
+      return res
+        .status(400)
+        .json({ error: "La reference de l'admin est requise" });
+    }
 
     const admin = await prisma.admin.findUnique({
-      where:{
-        id_admin:id_admin
+      where: {
+        id_admin: id_admin,
       },
- 
     });
 
-    if(!admin){
-      return res.status(404).json({error:"Aucun administrateur trouve"})
+    if (!admin) {
+      return res.status(404).json({ error: "Aucun administrateur trouve" });
     }
-    
-   await prisma.$transaction(async(tx)=>{
-    await tx.admin.update({
-      where:{
-        id_admin:admin.id_admin
-      },
-      data:{
-        nom: nom ?? admin.nom,
-        prenom: prenom ?? admin.prenom,
-        role: role
-      }
-    })
-   });
 
-   return res.status(200).json({message:"Admin modifier avec succes"});
+    await prisma.$transaction(async (tx) => {
+      await tx.admin.update({
+        where: {
+          id_admin: admin.id_admin,
+        },
+        data: {
+          nom: nom ?? admin.nom,
+          prenom: prenom ?? admin.prenom,
+          role: role,
+        },
+      });
+    });
 
+    return res.status(200).json({ message: "Admin modifier avec succes" });
   }
 
-  static async GetAllCentre (req,res) {
-   const centre = await prisma.centre.findMany({
-    orderBy:{
-      nom:'asc'
+  static async GetAllCentre(req, res) {
+    const centre = await prisma.centre.findMany({
+      orderBy: {
+        nom: "asc",
+      },
+    });
+
+    return res.json({ data: centre });
+  }
+
+  static async GetAllInscription(req, res) {
+    const insc = await prisma.inscription.findMany({
+      select: {
+        id_inscription: true,
+        date_inscription: true,
+        delete_at: true,
+        statut_inscription: true,
+        candidat: {
+          select: {
+            nom: true,
+            prenom: true,
+          },
+        },
+        paiement: {
+          select: {
+            id_paiement: true,
+            mode_paiement: true,
+          },
+        },
+      },
+    });
+
+    return res.json({ data: insc });
+  }
+
+  // static asyncUpdateInscription(req,res){
+  //   const{id_inscription} = req.params;
+  //   // ajouter les autres data modifiables
+  //   const{id_candidat,statut_inscription,id_concours,id_centre} = req.body;
+  //   if(!id_inscription){
+  //     return res.status(400).json({error:"La reference de l\'inscription est requise"});
+  //   }
+  //   const inscription = await prisma
+
+  // }
+
+  static async DetailInscription(req, res) {
+    const { id_inscription } = req.params;
+
+    if (!id_inscription) {
+      return res
+        .status(400)
+        .json({ error: "La reference de l'inscription est requise" });
     }
-   });
 
-   return res.json({data:centre})
+    let valid_id = id_inscription;
+    if (typeof id_inscription && typeof id_inscription !== "number") {
+      valid_id = parseInt(id_inscription);
+    } else {
+      return res
+        .status(400)
+        .json({
+          error: "Le type de la reference de l'inscription est invalide",
+        });
+    }
 
+    const inscription = await prisma.inscription.findFirst({
+      where: {
+        id_inscription:valid_id,
+      },
+
+      select: {
+        date_inscription: true,
+        statut_inscription: true,
+        delete_at: true,
+        centre: {
+          select: {
+            nom: true,
+            delete_at: true,
+          },
+        },
+        candidat: {
+          select: {
+            nom: true,
+            prenom: true,
+          },
+        },
+        concours: {
+          select: {
+            nom: true,
+            nombre_postes: true,
+            statut_concours: true,
+            categorie: {
+              select: {
+                libelle: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!id_inscription) {
+      return res.status(404).json({ error: "Aucune inscription trouvee" });
+    }
+
+    return res.json({data:inscription})
   }
 
   static async SortieResultat(req, res) {

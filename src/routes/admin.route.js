@@ -22,12 +22,12 @@ router.get("/categories", AdminController.GetCategorie);
 
 
 
-router.get("/dashboard", AdminController.Dashboard);
+
 router.use(AdminMiddleware.handle);
 
 
 
-
+router.get("/dashboard", AdminController.Dashboard);
 
 router.post("/create-concours",...validate(ConcoursDto.ValidateCreateConcours()), AdminController.CreateConcours);
 router.get("/concours/detail/:id_concours", ...validate(ConcoursDto.ValideDetailConcours()),AdminController.DetailConcours);
@@ -65,6 +65,10 @@ router.put('/candidats/update-candidat/:id_candidat',AdminController.UpdateCandi
 router.post('/candidats/inscrire-concours', AdminController.InscrireCandidаt)
 router.get('/candidats/all',AdminController.GetAllCandidat);
 
+
+
+router.get('/inscriptions/get-all', AdminController.GetAllInscription);
+router.get('/inscriptions/detail-inscription/:id_inscription', AdminController.DetailInscription);
 
 
 
