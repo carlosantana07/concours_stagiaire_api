@@ -38,7 +38,7 @@ export class AuthMiddleware {
     try {
 
       const user = req.user;
-z
+
       if (!user) {
         return res.status(401).json({ error: "Veuillez vous authentifier" });
       }
@@ -51,6 +51,27 @@ z
 
       next();
     } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Erreur serveur" });
+    }
+  }
+
+  static async CompteSupprimer (req,res,next){
+    try{
+      const user = req.user;
+          if (!user) {
+        return res.status(401).json({ error: "Veuillez vous authentifier" });
+      }
+
+      if(user.delete_at !== null){
+        return res.status(403).json({
+          error:"Votre compte a ete restreint.",
+          message: 'Contacter l\'assistance pour une suite dans la gestion de votre compte'
+        })
+      }
+      next();
+    }
+    catch(err){
       console.error(err);
       return res.status(500).json({ error: "Erreur serveur" });
     }

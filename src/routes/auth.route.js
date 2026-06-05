@@ -16,7 +16,10 @@ router.post('/resend-otp-code',authController.ResendOtp);
 
 // routees de test pour la validiter du cnib ...
 router.post('/verify-cnib',authController.VerifieCnib)
+
 router.use(AuthMiddleware.protect)
+router.use(AuthMiddleware.CompteSupprimer);
+
 router.post('/verify', authController.VerifierOtp);
 router.post('/reset-password',authController.ResetPassword);
 

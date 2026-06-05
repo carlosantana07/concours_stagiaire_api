@@ -7,7 +7,7 @@ const router = Router();
 // const ctrl   = new CandidatController();
 
 router.use(AuthMiddleware.protect); 
-
+router.use(AuthMiddleware.CompteSupprimer);
 
 router.get("/profil",CandidatController.getProfil);
 router.put("/profil",CandidatController.updateProfil);

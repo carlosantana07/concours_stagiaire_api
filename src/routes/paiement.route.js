@@ -10,6 +10,8 @@ router.post('/callback', PaiementController.Callback);
 
 
 router.use(AuthMiddleware.protect);
+router.use(AuthMiddleware.CompteVerifier);
+router.use(AuthMiddleware.CompteSupprimer);
 
 router.post('/init-payment', PaymentDto.validatePayement(), ValidateRequest.handle, PaiementController.Init);
 
