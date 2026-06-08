@@ -1,3 +1,4 @@
+import { connection as redis} from "../config/redis.js";
 import { prisma } from "../prisma.js";
 import { generateReceipt } from "../services/Upload-file.service.js";
 
