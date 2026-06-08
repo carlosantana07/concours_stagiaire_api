@@ -3,6 +3,7 @@ import { connection as redis } from "../config/redis.js";
 ;
 export class ConcoursController {
 
+ static TTL = 300; 
 
   static async GetCategorie(req, res) {
     try {
@@ -56,14 +57,29 @@ export class ConcoursController {
   }
 static async GetAllConcours(req, res) {
 
-   console.log("BACKEND MODIFIE");
+  const cacheKey = 'concours';
 
-   const concours = await prisma.concours.findMany();
+  const data = await redis.get(cacheKey);
 
-   console.log("TOTAL :", concours.length);
+  if(data){
+    return res.status(200).json({
+      data: JSON.parse(data)
+    })
+  };
+
+   const concours = await prisma.concours.findMany({
+    select:{
+      nom:true,
+      nombre_postes:true,
+      date_debut:true,
+    }
+   });
+
+  //  console.log("TOTAL :", concours.length);
+
+  await redis.set(cacheKey,JSON.stringify(concours),'EX',ConcoursController.TTL);
 
    return res.status(200).json({
-      ok: true,
       data: concours
    });
 }
