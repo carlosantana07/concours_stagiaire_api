@@ -47,7 +47,7 @@ export class ConcoursController {
         data: categorie,
       };
 
-      await redis.set(cacheKey, JSON.stringify(response), "EX", 60);
+      await redis.set(cacheKey, JSON.stringify(response), "EX", ConcoursController.TTL);
 
       return res.status(200).json(response);
     } catch (err) {
@@ -69,6 +69,7 @@ static async GetAllConcours(req, res) {
 
    const concours = await prisma.concours.findMany({
     select:{
+      id_concours:true,
       nom:true,
       nombre_postes:true,
       date_debut:true,
@@ -147,7 +148,7 @@ static async DetailConcours(req, res) {
     const response = { data: concours };
 
 
-    await redis.set(cacheKey, JSON.stringify(response), "EX", 500);
+    await redis.set(cacheKey, JSON.stringify(response), "EX", ConcoursController.TTL);
 
     return res.status(200).json(response);
   } catch (err) {
