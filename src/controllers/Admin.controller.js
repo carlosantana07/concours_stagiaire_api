@@ -790,6 +790,9 @@ export class AdminController {
         prenom: true,
         type_candidat: true,
         delete_at: true,
+        numero_cnib:true,
+        telephone:true,
+        email:true
       },
     });
 
