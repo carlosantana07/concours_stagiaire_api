@@ -1961,7 +1961,7 @@ export class AdminController {
 
     const inscription = await prisma.inscription.findUnique({
       where: {
-        id_inscription: id_inscription,
+        id_inscription:  parseInt(id_inscription),
       },
     });
 
@@ -2019,7 +2019,7 @@ export class AdminController {
 
     const inscription = await prisma.inscription.findUnique({
       where: {
-        id_inscription,
+        id_inscription:parseInt(id_inscription),
       },
       select: {
         id_concours: true,
@@ -2447,6 +2447,8 @@ export class AdminController {
     const id_inscription = parseIn(req.params.id_inscription);
     // ajouter les autres data modifiables
     const{id_candidat,statut_inscription,id_concours,id_centre} = req.body;
+
+    // centre, statut,
     if(!id_inscription){
       return res.status(400).json({error:"La reference de l\'inscription est requise"});
     }
