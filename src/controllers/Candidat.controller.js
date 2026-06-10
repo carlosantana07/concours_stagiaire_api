@@ -11,10 +11,12 @@ export class CandidatController {
   static async getProfil(req, res) {
     const { id_candidat } = req.user;
 
+
     if (!id_candidat) {
       return res.status(401).json({ error: "Id_candidat invalide" });
     }
 
+    
     const candidat = await prisma.candidat.findUnique({
       where: { id_candidat },
       select: {

@@ -1088,13 +1088,10 @@ export class AdminController {
       annee_concours,
       nom_candidat,
       prenom_candidat,
-      page = 1,
-      limit = 10,
+
     } = req.query;
 
-    const pageNumber = parseInt(page);
-    const limitNumber = parseInt(limit);
-    const skip = (pageNumber - 1) * limitNumber;
+
 
     const cacheKey = `paiements:${pageNumber}:${limitNumber}:${statut_paiement || ""}:${mode_paiement || ""}:${annee_concours || ""}:${nom_candidat || ""}:${prenom_candidat || ""}`;
 
@@ -1130,9 +1127,6 @@ export class AdminController {
 
     const [paiements, nombrePaiement] = await Promise.all([
       prisma.paiement.findMany({
-        where,
-        skip,
-        take: limitNumber,
         orderBy: { date_paiement: "desc" },
         select: {
           id_paiement: true,
@@ -1165,10 +1159,6 @@ export class AdminController {
     ]);
 
     const response = {
-      page: pageNumber,
-      limit: limitNumber,
-      total: nombrePaiement,
-      totalPages: Math.ceil(nombrePaiement / limitNumber),
       data: paiements,
     };
 
@@ -2234,7 +2224,7 @@ export class AdminController {
   }
 
   static async DeleteCandidatInscription(req, res) {
-    const { id_inscription } = req.params;
+    const id_inscription  = parseInt(req.params.id_inscription);
 
     if (!id_inscription) {
       return res
@@ -2338,7 +2328,7 @@ export class AdminController {
     return res.status(200).json({ message: "Admin modifier avec succes" });
   }
 
-  static async DeleteAdmin (req,res){
+  static async DeleteAdmin(req, res) {
     const { id_admin } = req.params;
     const { nom, prenom, role } = req.body;
     if (!id_admin) {
@@ -2348,35 +2338,37 @@ export class AdminController {
     }
 
     const [admin, total] = await Promise.all([
-       prisma.admin.findUnique({
-      where: {
-        id_admin: id_admin,
-      },
-    }),
-    prisma.admin.count()
+      prisma.admin.findUnique({
+        where: {
+          id_admin: id_admin,
+        },
+      }),
+      prisma.admin.count(),
     ]);
-
 
     if (!admin) {
       return res.status(404).json({ error: "Aucun administrateur trouve" });
     }
 
     // verifier s'il reste un seul admin suppression est impossible \
-    if(total == 1){ 
-      return res.status(400).json({error:'Un erreur est survenue , impossible de supprimer l\'adminisrateur '})
+    if (total == 1) {
+      return res
+        .status(400)
+        .json({
+          error:
+            "Un erreur est survenue , impossible de supprimer l'adminisrateur ",
+        });
     }
 
     await prisma.$transaction(async (tx) => {
       await tx.admin.delete({
         where: {
           id_admin: admin.id_admin,
-        }
+        },
       });
 
       return res.status(200).json({ message: "Admin supprimer avec succes" });
     });
-
-
   }
 
   static async GetAllCentre(req, res) {
@@ -2406,6 +2398,9 @@ export class AdminController {
             id_candidat: true,
             nom: true,
             prenom: true,
+            email: true,
+            type_candidat: true,
+            lieu_naissance: true,
           },
         },
         concours: {
@@ -2448,16 +2443,16 @@ export class AdminController {
     return res.json({ data: grouped });
   }
 
-  // static asyncUpdateInscription(req,res){
-  //   const{id_inscription} = req.params;
-  //   // ajouter les autres data modifiables
-  //   const{id_candidat,statut_inscription,id_concours,id_centre} = req.body;
-  //   if(!id_inscription){
-  //     return res.status(400).json({error:"La reference de l\'inscription est requise"});
-  //   }
-  //   const inscription = await prisma
+  static asyncUpdateInscription(req,res){
+    const id_inscription = parseIn(req.params.id_inscription);
+    // ajouter les autres data modifiables
+    const{id_candidat,statut_inscription,id_concours,id_centre} = req.body;
+    if(!id_inscription){
+      return res.status(400).json({error:"La reference de l\'inscription est requise"});
+    }
+    // const inscription = await prisma
 
-  // }
+  }
 
   static async DetailInscription(req, res) {
     const { id_inscription } = req.params;
@@ -2493,7 +2488,7 @@ export class AdminController {
       },
 
       select: {
-        date_inscription: true,
+        date_inscription: true, 
         statut_inscription: true,
         delete_at: true,
         centre: {
@@ -2504,8 +2499,12 @@ export class AdminController {
         },
         candidat: {
           select: {
+            id_candidat: true,
             nom: true,
             prenom: true,
+            email: true,
+            type_candidat: true,
+            lieu_naissance: true,
           },
         },
         concours: {
@@ -2530,6 +2529,61 @@ export class AdminController {
     await redis.set(cacheKey, JSON.stringify(inscription), "EX", 120);
     return res.json({ data: inscription });
   }
+
+static async PaiementByCandidat(req, res) {
+  const paiements = await prisma.paiement.findMany({
+    select: {
+      id_paiement: true,
+      montant: true,
+      date_paiement: true,
+      inscription: {
+        select: {
+          id_inscription: true,
+          date_inscription: true,
+          statut_inscription: true,
+          concours: true,
+          candidat: {
+            select: {
+              id_candidat: true,
+              prenom: true,
+              nom: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const grouped = paiements.reduce((acc, p) => {
+    const candidat = p.inscription.candidat;
+    const id = candidat.id_candidat;
+
+    if (!acc[id]) {
+      acc[id] = {
+        candidat,
+        paiements: [],
+      };
+    }
+
+    acc[id].paiements.push({
+      id_paiement: p.id_paiement,
+      montant: p.montant,
+      date_paiement: p.date_paiement,
+      inscription: {
+        id_inscription: p.inscription.id_inscription,
+        date_inscription: p.inscription.date_inscription,
+        statut_inscription: p.inscription.statut_inscription,
+        concours: p.inscription.concours,
+      },
+    });
+
+    return acc;
+  }, {});
+
+  return res.status(200).json({
+    data: Object.values(grouped),
+  });
+}
 
   static async SortieResultat(req, res) {
     // const {id_examen} = req.body;

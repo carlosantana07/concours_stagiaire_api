@@ -57,6 +57,7 @@ router.delete("/categories/delete-categorie/:id_categorie",...validate(Categorie
 router.get("/paiements", AdminController.ListesPaiements);
 router.get("/paiements/:id_paiement",...validate(PaymentDto.ValidateDetailPayment()), AdminController.DetailPaiement);
 router.put("/paiements/:id_paiement/status", AdminController.UpdatePaiementStatus);
+router.get('/paiement-by-candidat',AdminController.PaiementByCandidat);
 
 
 router.get("/candidats/search", AdminController.SearchCandidat);
