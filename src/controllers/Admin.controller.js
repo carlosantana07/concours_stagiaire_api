@@ -2056,7 +2056,7 @@ export class AdminController {
 
     // verifier si le centre proposer exixste dans le concours
 
-    isValidCentre = concours.centres.some((r) => r.centre.nom === centre.nom);
+   const isValidCentre = concours.centres.some((r) => r.centre.nom === centre.nom);
     if (!isValidCentre) {
       return res.status(409).json({
         error:
