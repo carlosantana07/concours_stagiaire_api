@@ -1093,7 +1093,7 @@ export class AdminController {
 
 
 
-    const cacheKey = `paiements:${pageNumber}:${limitNumber}:${statut_paiement || ""}:${mode_paiement || ""}:${annee_concours || ""}:${nom_candidat || ""}:${prenom_candidat || ""}`;
+    const cacheKey = `paiements`;
 
     const cached = await redis.get(cacheKey);
     if (cached) {
