@@ -2081,7 +2081,7 @@ export class AdminController {
           id_inscription,
         },
         data: {
-          id_centre: id_centre ?? inscription.id_centre,
+          id_centre: parseInt (id_centre) ?? inscription.id_centre,
         },
       });
 
