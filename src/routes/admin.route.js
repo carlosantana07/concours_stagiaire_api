@@ -75,6 +75,7 @@ router.get('/inscriptions/get-all', AdminController.GetAllInscription);
 router.get('/inscriptions/detail-inscription/:id_inscription', AdminController.DetailInscription);
 router.put('/inscriptions/update-status',AdminController.UpdateInscriptionStatus);
 router.put('/inscriptions/update-candidat-centre',AdminController.UpddateCandidatCentre);
+router.delete('/inscriptions/delete-candidat-inscription',AdminController.DeleteCandidatInscription);
 
 
 router.post("/examens", ...validate(ExaenDto.ValidateCreateExam()), AdminController.CreateExamen);
