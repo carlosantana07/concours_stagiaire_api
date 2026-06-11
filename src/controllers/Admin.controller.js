@@ -2518,13 +2518,13 @@ export class AdminController {
 
     // cache
 
-    const cacheKey = `inscription:${valid_id}`;
+    const cacheKey = `inscription`;
 
-    const data = await redis.get(cacheKey);
+    // const data = await redis.get(cacheKey);
 
-    if (data) {
-      return res.json({ data: JSON.parse(data) });
-    }
+    // if (data) {
+    //   return res.json({ data: JSON.parse(data) });
+    // }
 
     const inscription = await prisma.inscription.findFirst({
       where: {
@@ -2570,8 +2570,8 @@ export class AdminController {
       return res.status(404).json({ error: "Aucune inscription trouvee" });
     }
 
-    await redis.del('inscription');
-    await redis.set(cacheKey, JSON.stringify(inscription), "EX", 120);
+    await redis.del(cacheKey);
+    // await redis.set(cacheKey, JSON.stringify(inscription), "EX", 120);
 
     return res.json({ data: inscription });
   }
