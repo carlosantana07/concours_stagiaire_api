@@ -1955,6 +1955,8 @@ export class AdminController {
         .json({ error: "le status de l'inscriptions est manquant" });
     }
 
+     const cacheKey = `InscriptionAll`;
+
     // verifier si le status envoyer en backend correspond biens
     const strUpstatus = status_inscriptions.toUpperCase();
     const Isvalide = AdminController.#statusInscriptions.includes(strUpstatus);
@@ -1991,6 +1993,7 @@ export class AdminController {
       return updateInsc;
     });
 
+    await redis.del(cacheKey);
     return res.status(200).json({ message: "modification du status reussu" });
   }
 
@@ -2012,6 +2015,7 @@ export class AdminController {
         .json({ error: "les references du centre sont manquantes" });
     }
 
+     const cacheKey = `InscriptionAll`;
     const centre = await prisma.centre.findUnique({
       where: {
         id_centre: parseInt(id_centre),
@@ -2080,6 +2084,7 @@ export class AdminController {
 
       return updateInsc;
     });
+    await redis.del(cacheKey);
     return res.status(200).json({ message: "Modification du centre reussi" });
   }
 
