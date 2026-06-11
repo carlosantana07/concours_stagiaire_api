@@ -1974,6 +1974,8 @@ export class AdminController {
       },
     });
 
+    console.log('test inscriptions ',inscription);
+
     if (!inscription) {
       return res
         .status(404)
@@ -1986,7 +1988,7 @@ export class AdminController {
           id_inscription:inscription.id_inscription,
         },
         data: {
-          statut_inscription: status_inscriptions,
+          statut_inscription: strUpstatus ?? inscription.statut_inscription,
         },
       });
 
@@ -1994,7 +1996,7 @@ export class AdminController {
     });
 
     await redis.del(cacheKey);
-    return res.status(200).json({ message: "modification du status reussu" });
+    return res.status(200).json({ message: "modification du status reussi" });
   }
 
   /// modifier le centre d'un candidat
