@@ -18,6 +18,7 @@ import { type } from "os";
 import { error } from "console";
 import filterDeleted from "../utils/filter.js";
 import Redis from "ioredis";
+import AdminRessource from "../resource/admin.resource.js";
 
 async function invaliderCache(prefixe, nbPages = 10) {
   for (let page = 1; page <= nbPages; page++) {
@@ -37,6 +38,9 @@ export class AdminController {
         .json({ error: "Vous avez déjà un compte, veuillez vous connecter" });
     }
 
+        const cachekey = 'admin';
+   
+
     const passwordHash = await bcrypt.hash(mot_de_passe, 10);
 
     const admin = await prisma.admin.create({
@@ -51,7 +55,7 @@ export class AdminController {
         updated_at: new Date(),
       },
     });
-
+     await redis.del(cachekey);
     return res.status(201).json({
       message: "Votre compte a été créé avec succès",
       id: admin.id_admin,
@@ -2304,6 +2308,7 @@ export class AdminController {
         .status(400)
         .json({ error: "La reference de l'admin est requise" });
     }
+    const cachekey = 'admin';
 
     const admin = await prisma.admin.findUnique({
       where: {
@@ -2328,6 +2333,7 @@ export class AdminController {
       });
     });
 
+         await redis.del(cachekey);
     return res.status(200).json({ message: "Admin modifier avec succes" });
   }
 
@@ -2339,7 +2345,9 @@ export class AdminController {
         .status(400)
         .json({ error: "La reference de l'admin est requise" });
     }
-
+    
+        const cachekey = 'admin';
+     
     const [admin, total] = await Promise.all([
       prisma.admin.findUnique({
         where: {
@@ -2370,8 +2378,29 @@ export class AdminController {
         },
       });
 
+              await redis.del(cachekey)
       return res.status(200).json({ message: "Admin supprimer avec succes" });
     });
+  }
+
+  static async GetAllAdmin(req,res){
+    const cachekey = 'admin';
+    const data =await redis.get(cachekey);
+    if(data){
+      return res.status(200).json({data:JSON.parse(data)});
+    }
+
+    const admin = await prisma.admin.findMany({
+      orderBy:{
+        date_creation:'desc'
+      }
+    });
+
+  const admins = (AdminRessource(admin)); 
+
+    await redis.set(cachekey,JSON.stringify(admins),'EX',300);
+
+    return res.json({data:admins});
   }
 
   static async GetAllCentre(req, res) {

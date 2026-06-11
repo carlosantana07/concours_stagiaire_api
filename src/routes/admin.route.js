@@ -21,13 +21,14 @@ router.get("/categories", AdminController.GetCategorie);
 // router.get('/candidats/get-all/c',AdminController.GetAllCandidat)
 
 
-
+router.get('/admin/get-all-admin',AdminController.GetAllAdmin);
 
 router.use(AdminMiddleware.handle);
 
 router.post("/register", ...validate(AdminDto.ValidateRegister()), AdminController.Register);
 router.put('/admin/update-admin/:id_admin',AdminController.UpdateAdmin);
 router.delete('/admin/delete-admin/:id_admin',AdminController.DeleteAdmin);
+
 
 router.get("/dashboard", AdminController.Dashboard);
 
