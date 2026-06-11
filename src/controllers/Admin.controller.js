@@ -2036,6 +2036,7 @@ export class AdminController {
       },
       select: {
         id_concours: true,
+        id_centre:true,
       },
     });
 
@@ -2080,7 +2081,7 @@ export class AdminController {
           id_inscription,
         },
         data: {
-          id_centre: id_centre,
+          id_centre: id_centre ?? inscription.id_centre,
         },
       });
 
@@ -2569,7 +2570,9 @@ export class AdminController {
       return res.status(404).json({ error: "Aucune inscription trouvee" });
     }
 
+    await redis.del('inscription');
     await redis.set(cacheKey, JSON.stringify(inscription), "EX", 120);
+
     return res.json({ data: inscription });
   }
 
