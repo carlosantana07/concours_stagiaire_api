@@ -1981,7 +1981,7 @@ export class AdminController {
     const updateTransaction = await prisma.$transaction(async (tx) => {
       const updateInsc = tx.inscription.update({
         where: {
-          id_inscription,
+          id_inscription:inscription.id_inscription,
         },
         data: {
           statut_inscription: status_inscriptions,
@@ -2014,7 +2014,7 @@ export class AdminController {
 
     const centre = await prisma.centre.findUnique({
       where: {
-        id_centre,
+        id_centre: parseInt(id_centre),
       },
     });
 
@@ -2203,9 +2203,9 @@ export class AdminController {
     const inscription = await prisma.inscription.findFirst({
       where: {
         id_candidat: id_candidat,
-        id_inscription: id_inscription,
-        id_concours: id_concours,
-        id_centre: id_centre,
+        id_inscription:  parseInt(id_inscription),
+        // id_concours: parseInt (id_concours),
+        // id_centre: parseInt(id_centre),
       },
     });
 
@@ -2219,8 +2219,8 @@ export class AdminController {
           id_centre,
         },
         data: {
-          id_centre: id_centre ?? inscription.id_centre,
-          id_concours: id_concours ?? inscription.id_concours,
+          id_centre: parseInt(id_centre) ?? inscription.id_centre,
+          id_concours:  parseInt (id_concours) ?? inscription.id_concours,
           update_at: new Date(),
         },
       });
