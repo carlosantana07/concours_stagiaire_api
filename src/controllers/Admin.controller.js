@@ -1925,7 +1925,7 @@ export class AdminController {
       },
     });
 
-    const cacheKey = `InscriptionAll`;
+    const cacheKey = `inscription`;
 
     await redis.del(cacheKey);
     return res.status(201).json({
@@ -1955,7 +1955,7 @@ export class AdminController {
         .json({ error: "le status de l'inscriptions est manquant" });
     }
 
-     const cacheKey = `InscriptionAll`;
+     const cacheKey = `inscription`;
 
     // verifier si le status envoyer en backend correspond biens
     const strUpstatus = status_inscriptions.toUpperCase();
@@ -2015,7 +2015,7 @@ export class AdminController {
         .json({ error: "les references du centre sont manquantes" });
     }
 
-     const cacheKey = `InscriptionAll`;
+     const cacheKey = `inscription`;
     const centre = await prisma.centre.findUnique({
       where: {
         id_centre: parseInt(id_centre),
@@ -2236,6 +2236,7 @@ export class AdminController {
   }
 
   static async DeleteCandidatInscription(req, res) {
+
     const id_inscription  = parseInt(req.params.id_inscription);
 
     if (!id_inscription) {
@@ -2252,7 +2253,7 @@ export class AdminController {
     if (!inscription) {
       return res.status(404).json({ error: "Aucune Inscription trouvee" });
     }
-
+ const cacheKey = `inscription`;
     await prisma.$transaction(async (tx) => {
       //  return await tx.inscription.delete({
       //   where:{id_inscription: inscription.id_inscription}
@@ -2261,11 +2262,12 @@ export class AdminController {
       return await tx.inscription.update({
         where: { id_inscription: inscription.id_inscription },
         data: {
-          delete_at: true,
+          delete_at: new Date(),
         },
       });
     });
 
+    await redis.del(cacheKey);
     return res
       .status(200)
       .json({ message: "Inscription supprimer avec succes " });
@@ -2419,7 +2421,7 @@ export class AdminController {
   }
 
   static async GetAllInscription(req, res) {
-    const cacheKey = `InscriptionAll`;
+    const cacheKey = `inscription`;
     const data = await redis.get(cacheKey);
     if (data) {
       return res.json({ data: JSON.parse(data) });
