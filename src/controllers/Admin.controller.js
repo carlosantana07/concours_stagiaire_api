@@ -6,7 +6,7 @@ import {
   GenererListCandidat,
   GenererListConcours,
 } from "../services/Upload-file.service.js";
-import { connection as redis } from "../config/redis.js";
+import connection from "../config/redis.js";
 import { to } from "../utils/to.js";
 import ValidatePhone from "../utils/verifyNumber.js";
 import validateCnib from "../utils/verifyCnib.js";
@@ -19,6 +19,8 @@ import { error } from "console";
 import filterDeleted from "../utils/filter.js";
 import Redis from "ioredis";
 import AdminRessource from "../resource/admin.resource.js";
+import CandidatRessouce from "../resource/candidat.resource.js";
+import filterOne from "../utils/filterOne.js";
 
 async function invaliderCache(prefixe, nbPages = 10) {
   for (let page = 1; page <= nbPages; page++) {
@@ -26,8 +28,16 @@ async function invaliderCache(prefixe, nbPages = 10) {
   }
 }
 
+const redis = connection;
 export class AdminController {
+   #candidatRessource ;
+  constructor (){
+    this.#candidatRessource = new CandidatRessouce();
+    
+  }
   static #statusInscriptions = ["EN_ATTENTE", "VALIDEE", "ANNULEE"];
+  
+    static #statusPaiement = ["REUSSI", "ECHOUE", "ATTENTE"]; 
 
   static async Register(req, res) {
     const { email, mot_de_passe, nom, prenom, telephone, role } = req.body;
@@ -896,7 +906,11 @@ export class AdminController {
     });
 
     if (!candidat || candidat.length == 0) {
-      return res.status(404).json({ error: "aucun candidat trouve" });
+      return res.status(404).json({ error: "Aucun candidat trouve" });
+    }
+
+    if(filterOne(candidat).isSup) {
+        return res.status(404).json({ error: "Cet candidat n\'existe pas"});
     }
 
     const inscription = await prisma.inscription.findMany({
@@ -909,7 +923,7 @@ export class AdminController {
             categorie: true,
           },
         },
-        centre: true,
+        centre: true, 
         paiement: true,
       },
     });
@@ -1228,6 +1242,13 @@ export class AdminController {
       return res.status(400).json({ error: "id_paiement invalide" });
     }
 
+    // verifier le statut de paiement 
+
+    const statusP = statut_paiement.toUpperCase();
+    if (!AdminController.#statusPaiement.includes(statusP)){
+      return res.status(400).json({error: 'Le statut du paiement doit est incorrect'});
+    }
+
     const [candidat, paiement] = await Promise.all([
       prisma.candidat.findUnique({ where: { id_candidat } }),
       prisma.paiement.findUnique({ where: { id_paiement } }),
@@ -1246,7 +1267,7 @@ export class AdminController {
     await prisma.paiement.update({
       where: { id_paiement },
       data: {
-        statut_paiement: statut_paiement ?? paiement.statut_paiement,
+        statut_paiement: statusP ?? paiement.statut_paiement,
       },
     });
 
@@ -2149,7 +2170,13 @@ export class AdminController {
         response: d.bonneRep,
       }));
 
-      // si on ne connais pas le nombre de reponse a mettre.. on prend le cas ou la derniere reponse est la bonne
+      // si on ne connais pas le nombre de reponse a mettre.. on prend le cas ou la derniere reponse est la bonne 
+
+      /// recuperer la question et la reponse pour mettre en db
+
+      await prisma.$transaction(async(tx)=>{
+
+      });
 
       return res.status(200).json({
         success: true,
@@ -2459,8 +2486,10 @@ export class AdminController {
         // },
       },
     });
+    let is = filterDeleted(insc).data;
+    console.log( is);
 
-    const grouped = insc.reduce((acc, ins) => {
+    const grouped = is.reduce((acc, ins) => {
       const id = ins.candidat.id_candidat;
 
       if (!acc[id]) {
@@ -2518,13 +2547,13 @@ export class AdminController {
 
     // cache
 
-    const cacheKey = `inscription`;
+    const cacheKey = `inscription:${id_inscription}`;
 
-    // const data = await redis.get(cacheKey);
+    const data = await redis.get(cacheKey);
 
-    // if (data) {
-    //   return res.json({ data: JSON.parse(data) });
-    // }
+    if (data) {
+      return res.json({ data: JSON.parse(data) });
+    }
 
     const inscription = await prisma.inscription.findFirst({
       where: {
@@ -2570,8 +2599,14 @@ export class AdminController {
       return res.status(404).json({ error: "Aucune inscription trouvee" });
     }
 
-    await redis.del(cacheKey);
-    // await redis.set(cacheKey, JSON.stringify(inscription), "EX", 120);
+    const insc = filterOne(inscription).data;
+
+    if(!insc){
+      return res.status(404).json({error:'Cette inscription n\'existe pas'});
+    }
+
+    // await redis.del(cacheKey);
+    await redis.set(cacheKey, JSON.stringify(inscription), "EX", 120);
 
     return res.json({ data: inscription });
   }
