@@ -20,7 +20,7 @@ export class PaymentDto {
   }
   static ValidateDetailPayment(){
     return [
-      param('id_paiement').notEmpty().withMessage('La reference du paiement est requise')
+      param('id_candidat').notEmpty().withMessage('La reference du paiement est requise')
     ];
   }
 }

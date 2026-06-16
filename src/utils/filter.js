@@ -1,3 +1,5 @@
+import { error } from "console";
+
 const resultat = {
   error: false,
   success: false,
@@ -22,6 +24,7 @@ const filterDeleted = (value, deleted=false) => {
     }
     else{
        return f.delete_at !== null
+       
     }
   });
 

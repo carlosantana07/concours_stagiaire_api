@@ -1,7 +1,7 @@
-import { connection as redis} from "../config/redis.js";
+import connection from "../config/redis.js";
 import { prisma } from "../prisma.js";
 import { generateReceipt } from "../services/Upload-file.service.js";
-
+const redis =  connection;
 export class InscriptionController {
   static async sInscrire(req, res) {
     const { id_candidat } = req.user;

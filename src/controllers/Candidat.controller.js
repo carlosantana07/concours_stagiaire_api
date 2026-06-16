@@ -160,7 +160,7 @@ static async getMesCandidatures(req, res) {
     prisma.inscription.findMany({
       take:  limit,
       skip,
-      where: { id_candidat },
+      where: { id_candidat , delete_at:null },
       include: {
         concours: {
           select: {

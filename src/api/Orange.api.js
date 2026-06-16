@@ -1,5 +1,5 @@
-import { connection as redis } from "../config/redis.js";
-
+import connection from "../config/redis.js";
+const redis = connection;
 export class OrangeApi {
   constructor(telephone) {
     this.clientId = process.env.CLIEND_ID;

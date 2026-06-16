@@ -1,6 +1,6 @@
 import { prisma } from "../prisma.js";
-import { connection as redis } from "../config/redis.js";
-;
+import connection from "../config/redis.js";
+const redis = connection;
 export class ConcoursController {
 
  static TTL = 300; 

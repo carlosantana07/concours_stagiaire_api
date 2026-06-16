@@ -3,10 +3,11 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { contactTemplate } from "../services/templates/Mail/contactUs.js";
 import { sendMailContact } from "../config/mailer.js";
-import { connection } from "../config/redis.js";
+import connection from "../config/redis.js";
 import validateCnib from "../utils/verifyCnib.js";
 import ValidatePhone from "../utils/verifyNumber.js";
 import filterOne from "../utils/filterOne.js";
+import sendMailQueue from "../queues/mail.queue.js";
 
 // function ValidatePhone(value) {
 //   if (!value) return { valid: false, message: "Numéro requis" };
@@ -283,7 +284,7 @@ export class AuthController {
         matricule: matricule ?? null,
         emploi: emploi ?? null,
         ministere: ministere ?? null,
-        choix_notification: choixFinal,
+        // choix_notification: choixFinal,
         otp,
         otp_expiration,
       },
@@ -297,6 +298,14 @@ export class AuthController {
     } else {
       await this.notificationService.envoyerOtpEmail(otp);
     }
+
+//     await sendMailQueue.add("send-otp", {
+//   otp,
+//   email: candidat.email,
+//   telephone: candidat.telephone,
+//   canal: choixFinal,
+// });
+
 
     const token = jwt.sign(
       { id: candidat.id_candidat, email: candidat.email, role: "candidat" },
@@ -385,7 +394,7 @@ export class AuthController {
 
     return res.status(200).json({
       message:
-        candidat.choix_notification === "sms"
+         choix === "sms"
           ? "OTP renvoyé par SMS"
           : "OTP renvoyé par email",
       token,

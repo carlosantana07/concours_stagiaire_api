@@ -9,7 +9,7 @@ import adminRoutes from "./routes/admin.route.js";
 import cors from "cors";
 import { swaggerDocs } from "./swagger.js";
 import helmet from "helmet";
-import { connection } from "./config/redis.js";
+import connection from "./config/redis.js";
 import inscriptionRoutes from "./routes/inscription.route.js";
 import paiementRoutes from "./routes/paiement.route.js";
 import concoursRoutes from "./routes/concours.route.js";

@@ -1186,52 +1186,72 @@ export class AdminController {
     await redis.set(cacheKey, JSON.stringify(response), "EX", 60);
     return res.status(200).json(response);
   }
+static async DetailPaiement(req, res) {
+    const { id_candidat } = req.params;
 
-  static async DetailPaiement(req, res) {
-    const id_paiement = parseInt(req.params.id_paiement);
-
-    if (isNaN(id_paiement)) {
-      return res.status(400).json({ error: "id_paiement invalide" });
+    if (!id_candidat) {
+      return res.status(400).json({
+        error: "id_candidat requis"
+      });
     }
 
-    const paiement = await prisma.paiement.findUnique({
-      where: { id_paiement },
+    const paiements = await prisma.paiement.findMany({
+      where: {
+        inscription: {
+          id_candidat: id_candidat
+        }
+      },
       select: {
+        id_paiement: true,
         montant: true,
         date_paiement: true,
         mode_paiement: true,
         reference_transaction: true,
         statut_paiement: true,
+
         inscription: {
           select: {
+            id_inscription: true,
             date_inscription: true,
             statut_inscription: true,
+
             concours: {
               select: {
+                nom: true,
                 annee: true,
                 type: true,
-                nombre_postes: true,
-                nom: true,
-              },
+                nombre_postes: true
+              }
             },
+
             candidat: {
               select: {
+                id_candidat: true,
                 nom: true,
                 prenom: true,
                 numero_cnib: true,
                 date_naissance: true,
-              },
-            },
-          },
-        },
+                email: true
+              }
+            }
+          }
+        }
       },
+      orderBy: {
+        date_paiement: "desc"
+      }
     });
 
-    if (!paiement) {
-      return res.status(404).json({ error: "Aucun paiement trouvé" });
+    if (!paiements.length) {
+      return res.status(404).json({
+        error: "Aucun paiement trouvé pour ce candidat"
+      });
     }
 
-    return res.status(200).json({ data: paiement });
+    return res.status(200).json({
+      total_paiements: paiements.length,
+      data: paiements
+    });
   }
 
   static async UpdatePaiementStatus(req, res) {
@@ -2457,6 +2477,10 @@ export class AdminController {
       return res.json({ data: JSON.parse(data) });
     }
     const insc = await prisma.inscription.findMany({
+      where:{
+        delete_at:null
+      },
+
       select: {
         id_inscription: true,
         date_inscription: true,
@@ -2566,6 +2590,7 @@ export class AdminController {
         delete_at: true,
         centre: {
           select: {
+            id_centre:true,
             nom: true,
             delete_at: true,
           },
