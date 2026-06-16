@@ -20,15 +20,15 @@ router.post("/login", ...validate(AdminDto.ValidateLogin()), AdminController.Log
 router.get("/categories", AdminController.GetCategorie);
 // router.get('/candidats/get-all/c',AdminController.GetAllCandidat)
 
+router.get('/candidats/detail/:id_candidat', AdminController.DetailCandidat)
 
-router.get('/admin/get-all-admin',AdminController.GetAllAdmin);
 
 router.use(AdminMiddleware.handle);
 
-router.post("/register", ...validate(AdminDto.ValidateRegister()), AdminController.Register);
-router.put('/admin/update-admin/:id_admin',AdminController.UpdateAdmin);
-router.delete('/admin/delete-admin/:id_admin',AdminController.DeleteAdmin);
 
+
+router.get('/admin/get-all-admin',AdminController.GetAllAdmin);
+router.get('admin/profile/:id_admin',AdminController.ProfileAdmin);
 
 router.get("/dashboard", AdminController.Dashboard);
 
@@ -64,7 +64,7 @@ router.get('/paiement-by-candidat',AdminController.PaiementByCandidat);
 router.get("/candidats/search", AdminController.SearchCandidat);
 router.delete("/candidats/delete/:id_candidat", AdminController.DeleteCandidat);
 router.post('/candidats/create',AdminController.RegisterCandidat);
-router.get('/candidats/detail/:id_candidat', AdminController.DetailCandidat)
+
 router.put('/candidats/update-candidat/:id_candidat',AdminController.UpdateCandidat);
 router.post('/candidats/inscrire-concours', AdminController.InscrireCandidаt)
 router.get('/candidats/all',AdminController.GetAllCandidat);
@@ -87,5 +87,12 @@ router.get('/examen/list-exam',AdminController.getAllExam)
 router.post("/upload-exam-question", upload.single("file"), AdminController.UploadsExamresponse);
 router.get('/sorti-resultat',AdminController.SortieResultat);
 router.get('/concours/listes',AdminController.ListesConcours);
+
+router.use(AdminMiddleware.SuperAdmin);
+router.put('/admin/update-admin/:id_admin',AdminController.UpdateAdmin);
+router.delete('/admin/delete-admin/:id_admin',AdminController.DeleteAdmin);
+router.post("/register", ...validate(AdminDto.ValidateRegister()), AdminController.Register);
+
+// a prevoir modifier le role ou assigner un nouveau role 
 
 export default router;

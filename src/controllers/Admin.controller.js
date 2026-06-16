@@ -2666,6 +2666,30 @@ static async PaiementByCandidat(req, res) {
   });
 }
 
+static async ProfileAdmin(req,res){
+  const{id_admin} = req.params;
+  if(!id_admin){
+    return res.status(400).json({error:'Les references de l\'administrateur sont requise'});
+    
+  }
+  const admin =  await prisma.admin.findFirst({
+    where:{
+      id_admin: id_admin
+    },
+    select:{
+      id_admin:true,
+      nom:true,
+      prenom:true,
+      role:true,
+    }
+  });
+
+  if(!admin){
+    return res.status(404).json({error:'Aucun admin n\'est associe avec ses references'});
+  }
+
+  return res.status(200).json({data:admin});
+}
   static async SortieResultat(req, res) {
     // const {id_examen} = req.body;
     // if(!id_examen) {
