@@ -40,6 +40,7 @@ router.get("/concours/search", AdminController.SearchConcours);
 router.get("/concours", AdminController.GetAllConcours);
 router.post("/concours/:id_concours/switch-status",...validate(ConcoursDto.ValideSwitchStatusConcours()) ,AdminController.SwitchStatuConcours);
 router.patch('/concours/auto-switch-status',AdminController.AutoSwitch);
+router.get('/concours/concours-centre/:id_concours',AdminController.ConcoursCentre);
 
 router.post("/centres/create", ...validate(AdminDto.ValidateCreateCentre()), AdminController.CreateCentre);
 router.put('/centres/update-centre/:id_centre',...validate(CentreDto.ValidateUpdateCentre()),AdminController.UpdateCentre);

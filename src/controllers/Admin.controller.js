@@ -2715,6 +2715,30 @@ static async ProfileAdmin(req,res){
 
   return res.status(200).json({data:admin});
 }
+
+static async ConcoursCentre (req,res){
+  const {id_concours} = req.params;
+  if(!id_concours){
+    return res.status(400).json({error:'Les references du concours sont requises'});
+  }
+
+  const centres = await prisma.concoursCentre.findMany({
+    where:{
+      concoursId:id_concours
+    },
+    select:{
+      centre:true
+    }
+  });
+
+  if(!centres || centres.length === 0){
+    return res.status(404).json({error:'Ce concours n\'a aucun centre.Veuillez ajouter des centres pour ce concours'});
+  }
+
+  return res.status(200).json({
+    data: centres
+  });
+}
   static async SortieResultat(req, res) {
     // const {id_examen} = req.body;
     // if(!id_examen) {
