@@ -2752,7 +2752,7 @@ static async ConcoursCentre (req,res){
   const centre  =  centres.map((c)=>({
    
       id_centre:c.centre.id_centre,
-      nom_centre : c.centre.nom
+      nom : c.centre.nom
   
   }))
   return res.status(200).json({
