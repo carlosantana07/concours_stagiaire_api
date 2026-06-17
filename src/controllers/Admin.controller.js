@@ -2717,26 +2717,46 @@ static async ProfileAdmin(req,res){
 }
 
 static async ConcoursCentre (req,res){
-  const {id_concours} =  parseInt(req.params);
+  const id_concours =  parseInt(req.params.id_concours);
   if(!id_concours){
     return res.status(400).json({error:'Les references du concours sont requises'});
   }
 
+  // avant tout verifier si le concours est valide
+
+  const concours = await prisma.concours.findFirst({
+    where:{
+      id_concours:id_concours,
+    }
+  });
+
+  if(!concours){
+    return res.status(404).json({error:'Aucun concours associe a cette reference'})
+  };
   const centres = await prisma.concoursCentre.findMany({
     where:{
-      concoursId:id_concours
+      concoursId:concours.id_concours,
+      
     },
-    select:{
+    include:{
       centre:true
     }
   });
+
+
 
   if(!centres || centres.length === 0){
     return res.status(404).json({error:'Ce concours n\'a aucun centre.Veuillez ajouter des centres pour ce concours'});
   }
 
+  const centre  =  centres.map((c)=>({
+   
+      id_centre:c.centre.id_centre,
+      nom_centre : c.centre.nom
+  
+  }))
   return res.status(200).json({
-    data: centres
+    data: centre
   });
 }
   static async SortieResultat(req, res) {
