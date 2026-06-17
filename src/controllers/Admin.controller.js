@@ -2717,7 +2717,7 @@ static async ProfileAdmin(req,res){
 }
 
 static async ConcoursCentre (req,res){
-  const {id_concours} = req.params;
+  const {id_concours} =  parseInt(req.params);
   if(!id_concours){
     return res.status(400).json({error:'Les references du concours sont requises'});
   }
