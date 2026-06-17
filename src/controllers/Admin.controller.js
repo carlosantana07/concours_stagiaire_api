@@ -2692,7 +2692,7 @@ static async PaiementByCandidat(req, res) {
 }
 
 static async ProfileAdmin(req,res){
-  const{id_admin} = req.params;
+  const{id_admin} = req.admin;
   if(!id_admin){
     return res.status(400).json({error:'Les references de l\'administrateur sont requise'});
     
