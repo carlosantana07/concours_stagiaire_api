@@ -28,7 +28,7 @@ router.use(AdminMiddleware.handle);
 
 
 router.get('/admin/get-all-admin',AdminController.GetAllAdmin);
-router.get('admin/profile/:id_admin',AdminController.ProfileAdmin);
+router.get('/admin/profile/:id_admin',AdminController.ProfileAdmin);
 
 router.get("/dashboard", AdminController.Dashboard);
 
