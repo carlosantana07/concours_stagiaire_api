@@ -38,7 +38,7 @@ static async handle(req, res, next) {
   static async SuperAdmin(req, res, next) {
 
     try {
-      if (req.admin?.role !== "SUPERADMIN")
+      if (req.admin?.role !== "SUPERADMIN") 
         return res
           .status(401)
           .json({ error: "acces reserver uniquement qu'aux super admin" });
