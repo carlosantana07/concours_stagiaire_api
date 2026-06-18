@@ -2768,14 +2768,14 @@ export class AdminController {
 
     const data = await redis.get(cacheKey);
 
-    if (data) {
-      return res.status(200).json({ data: JSON.parse(data) });
-    }
+    // if (data) {
+    //   return res.status(200).json({ data: JSON.parse(data) });
+    // }
 
     const inscription = await prisma.inscription.findMany({
       where: {
         delete_at: null,
-        statut_inscription:'VALIDEE',
+        // statut_inscription:'VALIDEE',
       },
       select: {
         id_inscription: true,
@@ -2826,6 +2826,62 @@ export class AdminController {
 
     return res.status(200).json({ data: sortie });
   }
+
+static async CharCirculaire(req, res) {
+  const candidats = await prisma.candidat.findMany({
+    where: {
+      delete_at: null,
+    },
+  });
+
+
+  const now = new Date();
+
+  const startOfThisWeek = new Date(now);
+  const day = now.getDay() || 7;
+  startOfThisWeek.setHours(0, 0, 0, 0);
+  startOfThisWeek.setDate(now.getDate() - day + 1);
+
+  const endOfThisWeek = new Date(startOfThisWeek);
+  endOfThisWeek.setDate(startOfThisWeek.getDate() + 6);
+  endOfThisWeek.setHours(23, 59, 59, 999);
+
+  const startOfLastWeek = new Date(startOfThisWeek);
+  startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+
+  const endOfLastWeek = new Date(startOfThisWeek);
+  endOfLastWeek.setMilliseconds(-1);
+
+
+  const thisWeek = candidats.filter((c) => {
+    const date = new Date(c.date_creation);
+    return date >= startOfThisWeek && date <= endOfThisWeek;
+  });
+
+  const lastWeek = candidats.filter((c) => {
+    const date = new Date(c.date_creation);
+    return date >= startOfLastWeek && date <= endOfLastWeek;
+  });
+
+  const total = candidats.length;
+
+  const nouveau = thisWeek.length;
+  const ancien = lastWeek.length;
+  const autres = total - (nouveau + ancien);
+
+
+  const data = {
+    total,
+    thisWeek: nouveau,
+    lastWeek: ancien,
+    autres
+  };
+
+  return res.status(200).json({
+  data:data
+ 
+  });
+}
   static async SortieResultat(req, res) {
     // const {id_examen} = req.body;
     // if(!id_examen) {
