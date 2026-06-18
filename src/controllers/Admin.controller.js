@@ -30,14 +30,13 @@ async function invaliderCache(prefixe, nbPages = 10) {
 
 const redis = connection;
 export class AdminController {
-   #candidatRessource ;
-  constructor (){
+  #candidatRessource;
+  constructor() {
     this.#candidatRessource = new CandidatRessouce();
-    
   }
   static #statusInscriptions = ["EN_ATTENTE", "VALIDEE", "ANNULEE"];
-  
-    static #statusPaiement = ["REUSSI", "ECHOUE", "ATTENTE"]; 
+
+  static #statusPaiement = ["REUSSI", "ECHOUE", "ATTENTE"];
 
   static async Register(req, res) {
     const { email, mot_de_passe, nom, prenom, telephone, role } = req.body;
@@ -48,8 +47,7 @@ export class AdminController {
         .json({ error: "Vous avez déjà un compte, veuillez vous connecter" });
     }
 
-        const cachekey = 'admin';
-   
+    const cachekey = "admin";
 
     const passwordHash = await bcrypt.hash(mot_de_passe, 10);
 
@@ -65,7 +63,7 @@ export class AdminController {
         updated_at: new Date(),
       },
     });
-     await redis.del(cachekey);
+    await redis.del(cachekey);
     return res.status(201).json({
       message: "Votre compte a été créé avec succès",
       id: admin.id_admin,
@@ -804,9 +802,9 @@ export class AdminController {
         prenom: true,
         type_candidat: true,
         delete_at: true,
-        numero_cnib:true,
-        telephone:true,
-        email:true
+        numero_cnib: true,
+        telephone: true,
+        email: true,
       },
     });
 
@@ -909,8 +907,8 @@ export class AdminController {
       return res.status(404).json({ error: "Aucun candidat trouve" });
     }
 
-    if(filterOne(candidat).isSup) {
-        return res.status(404).json({ error: "Cet candidat n\'existe pas"});
+    if (filterOne(candidat).isSup) {
+      return res.status(404).json({ error: "Cet candidat n\'existe pas" });
     }
 
     const inscription = await prisma.inscription.findMany({
@@ -923,7 +921,7 @@ export class AdminController {
             categorie: true,
           },
         },
-        centre: true, 
+        centre: true,
         paiement: true,
       },
     });
@@ -1109,10 +1107,7 @@ export class AdminController {
       annee_concours,
       nom_candidat,
       prenom_candidat,
-
     } = req.query;
-
-
 
     const cacheKey = `paiements`;
 
@@ -1186,20 +1181,20 @@ export class AdminController {
     await redis.set(cacheKey, JSON.stringify(response), "EX", 60);
     return res.status(200).json(response);
   }
-static async DetailPaiement(req, res) {
+  static async DetailPaiement(req, res) {
     const { id_candidat } = req.params;
 
     if (!id_candidat) {
       return res.status(400).json({
-        error: "id_candidat requis"
+        error: "id_candidat requis",
       });
     }
 
     const paiements = await prisma.paiement.findMany({
       where: {
         inscription: {
-          id_candidat: id_candidat
-        }
+          id_candidat: id_candidat,
+        },
       },
       select: {
         id_paiement: true,
@@ -1220,8 +1215,8 @@ static async DetailPaiement(req, res) {
                 nom: true,
                 annee: true,
                 type: true,
-                nombre_postes: true
-              }
+                nombre_postes: true,
+              },
             },
 
             candidat: {
@@ -1231,26 +1226,26 @@ static async DetailPaiement(req, res) {
                 prenom: true,
                 numero_cnib: true,
                 date_naissance: true,
-                email: true
-              }
-            }
-          }
-        }
+                email: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
-        date_paiement: "desc"
-      }
+        date_paiement: "desc",
+      },
     });
 
     if (!paiements.length) {
       return res.status(404).json({
-        error: "Aucun paiement trouvé pour ce candidat"
+        error: "Aucun paiement trouvé pour ce candidat",
       });
     }
 
     return res.status(200).json({
       total_paiements: paiements.length,
-      data: paiements
+      data: paiements,
     });
   }
 
@@ -1262,11 +1257,13 @@ static async DetailPaiement(req, res) {
       return res.status(400).json({ error: "id_paiement invalide" });
     }
 
-    // verifier le statut de paiement 
+    // verifier le statut de paiement
 
     const statusP = statut_paiement.toUpperCase();
-    if (!AdminController.#statusPaiement.includes(statusP)){
-      return res.status(400).json({error: 'Le statut du paiement doit est incorrect'});
+    if (!AdminController.#statusPaiement.includes(statusP)) {
+      return res
+        .status(400)
+        .json({ error: "Le statut du paiement doit est incorrect" });
     }
 
     const [candidat, paiement] = await Promise.all([
@@ -1996,7 +1993,7 @@ static async DetailPaiement(req, res) {
         .json({ error: "le status de l'inscriptions est manquant" });
     }
 
-     const cacheKey = `inscription`;
+    const cacheKey = `inscription`;
 
     // verifier si le status envoyer en backend correspond biens
     const strUpstatus = status_inscriptions.toUpperCase();
@@ -2011,11 +2008,11 @@ static async DetailPaiement(req, res) {
 
     const inscription = await prisma.inscription.findUnique({
       where: {
-        id_inscription:  parseInt(id_inscription),
+        id_inscription: parseInt(id_inscription),
       },
     });
 
-    console.log('test inscriptions ',inscription);
+    console.log("test inscriptions ", inscription);
 
     if (!inscription) {
       return res
@@ -2026,7 +2023,7 @@ static async DetailPaiement(req, res) {
     const updateTransaction = await prisma.$transaction(async (tx) => {
       const updateInsc = tx.inscription.update({
         where: {
-          id_inscription:inscription.id_inscription,
+          id_inscription: inscription.id_inscription,
         },
         data: {
           statut_inscription: strUpstatus ?? inscription.statut_inscription,
@@ -2058,7 +2055,7 @@ static async DetailPaiement(req, res) {
         .json({ error: "les references du centre sont manquantes" });
     }
 
-     const cacheKey = `inscription`;
+    const cacheKey = `inscription`;
     const centre = await prisma.centre.findUnique({
       where: {
         id_centre: parseInt(id_centre),
@@ -2073,11 +2070,11 @@ static async DetailPaiement(req, res) {
 
     const inscription = await prisma.inscription.findUnique({
       where: {
-        id_inscription:parseInt(id_inscription),
+        id_inscription: parseInt(id_inscription),
       },
       select: {
         id_concours: true,
-        id_centre:true,
+        id_centre: true,
       },
     });
 
@@ -2108,7 +2105,9 @@ static async DetailPaiement(req, res) {
 
     // verifier si le centre proposer exixste dans le concours
 
-   const isValidCentre = concours.centres.some((r) => r.centre.nom === centre.nom);
+    const isValidCentre = concours.centres.some(
+      (r) => r.centre.nom === centre.nom,
+    );
     if (!isValidCentre) {
       return res.status(409).json({
         error:
@@ -2122,7 +2121,7 @@ static async DetailPaiement(req, res) {
           id_inscription,
         },
         data: {
-          id_centre: parseInt (id_centre) ?? inscription.id_centre,
+          id_centre: parseInt(id_centre) ?? inscription.id_centre,
         },
       });
 
@@ -2190,13 +2189,11 @@ static async DetailPaiement(req, res) {
         response: d.bonneRep,
       }));
 
-      // si on ne connais pas le nombre de reponse a mettre.. on prend le cas ou la derniere reponse est la bonne 
+      // si on ne connais pas le nombre de reponse a mettre.. on prend le cas ou la derniere reponse est la bonne
 
       /// recuperer la question et la reponse pour mettre en db
 
-      await prisma.$transaction(async(tx)=>{
-
-      });
+      await prisma.$transaction(async (tx) => {});
 
       return res.status(200).json({
         success: true,
@@ -2258,7 +2255,7 @@ static async DetailPaiement(req, res) {
     const inscription = await prisma.inscription.findFirst({
       where: {
         id_candidat: id_candidat,
-        id_inscription:  parseInt(id_inscription),
+        id_inscription: parseInt(id_inscription),
         // id_concours: parseInt (id_concours),
         // id_centre: parseInt(id_centre),
       },
@@ -2275,7 +2272,7 @@ static async DetailPaiement(req, res) {
         },
         data: {
           id_centre: parseInt(id_centre) ?? inscription.id_centre,
-          id_concours:  parseInt (id_concours) ?? inscription.id_concours,
+          id_concours: parseInt(id_concours) ?? inscription.id_concours,
           update_at: new Date(),
         },
       });
@@ -2286,8 +2283,7 @@ static async DetailPaiement(req, res) {
   }
 
   static async DeleteCandidatInscription(req, res) {
-
-    const id_inscription  = parseInt(req.params.id_inscription);
+    const id_inscription = parseInt(req.params.id_inscription);
 
     if (!id_inscription) {
       return res
@@ -2303,7 +2299,7 @@ static async DetailPaiement(req, res) {
     if (!inscription) {
       return res.status(404).json({ error: "Aucune Inscription trouvee" });
     }
- const cacheKey = `inscription`;
+    const cacheKey = `inscription`;
     await prisma.$transaction(async (tx) => {
       //  return await tx.inscription.delete({
       //   where:{id_inscription: inscription.id_inscription}
@@ -2365,7 +2361,7 @@ static async DetailPaiement(req, res) {
         .status(400)
         .json({ error: "La reference de l'admin est requise" });
     }
-    const cachekey = 'admin';
+    const cachekey = "admin";
 
     const admin = await prisma.admin.findUnique({
       where: {
@@ -2390,7 +2386,7 @@ static async DetailPaiement(req, res) {
       });
     });
 
-         await redis.del(cachekey);
+    await redis.del(cachekey);
     return res.status(200).json({ message: "Admin modifier avec succes" });
   }
 
@@ -2402,9 +2398,9 @@ static async DetailPaiement(req, res) {
         .status(400)
         .json({ error: "La reference de l'admin est requise" });
     }
-    
-        const cachekey = 'admin';
-     
+
+    const cachekey = "admin";
+
     const [admin, total] = await Promise.all([
       prisma.admin.findUnique({
         where: {
@@ -2420,12 +2416,10 @@ static async DetailPaiement(req, res) {
 
     // verifier s'il reste un seul admin suppression est impossible \
     if (total == 1) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Un erreur est survenue , impossible de supprimer l'adminisrateur ",
-        });
+      return res.status(400).json({
+        error:
+          "Un erreur est survenue , impossible de supprimer l'adminisrateur ",
+      });
     }
 
     await prisma.$transaction(async (tx) => {
@@ -2435,29 +2429,29 @@ static async DetailPaiement(req, res) {
         },
       });
 
-              await redis.del(cachekey)
+      await redis.del(cachekey);
       return res.status(200).json({ message: "Admin supprimer avec succes" });
     });
   }
 
-  static async GetAllAdmin(req,res){
-    const cachekey = 'admin';
-    const data =await redis.get(cachekey);
-    if(data){
-      return res.status(200).json({data:JSON.parse(data)});
+  static async GetAllAdmin(req, res) {
+    const cachekey = "admin";
+    const data = await redis.get(cachekey);
+    if (data) {
+      return res.status(200).json({ data: JSON.parse(data) });
     }
 
     const admin = await prisma.admin.findMany({
-      orderBy:{
-        date_creation:'desc'
-      }
+      orderBy: {
+        date_creation: "desc",
+      },
     });
 
-  const admins = (AdminRessource(admin)); 
+    const admins = AdminRessource(admin);
 
-    await redis.set(cachekey,JSON.stringify(admins),'EX',300);
+    await redis.set(cachekey, JSON.stringify(admins), "EX", 300);
 
-    return res.json({data:admins});
+    return res.json({ data: admins });
   }
 
   static async GetAllCentre(req, res) {
@@ -2477,8 +2471,8 @@ static async DetailPaiement(req, res) {
       return res.json({ data: JSON.parse(data) });
     }
     const insc = await prisma.inscription.findMany({
-      where:{
-        delete_at:null
+      where: {
+        delete_at: null,
       },
 
       select: {
@@ -2511,7 +2505,7 @@ static async DetailPaiement(req, res) {
       },
     });
     let is = filterDeleted(insc).data;
-    console.log( is);
+    console.log(is);
 
     const grouped = is.reduce((acc, ins) => {
       const id = ins.candidat.id_candidat;
@@ -2538,17 +2532,19 @@ static async DetailPaiement(req, res) {
     return res.json({ data: grouped });
   }
 
-  static asyncUpdateInscription(req,res){
+  static asyncUpdateInscription(req, res) {
     const id_inscription = parseIn(req.params.id_inscription);
     // ajouter les autres data modifiables
-    const{id_candidat,statut_inscription,id_concours,id_centre} = req.body;
+    const { id_candidat, statut_inscription, id_concours, id_centre } =
+      req.body;
 
     // centre, statut,
-    if(!id_inscription){
-      return res.status(400).json({error:"La reference de l\'inscription est requise"});
+    if (!id_inscription) {
+      return res
+        .status(400)
+        .json({ error: "La reference de l\'inscription est requise" });
     }
     // const inscription = await prisma
-
   }
 
   static async DetailInscription(req, res) {
@@ -2585,12 +2581,12 @@ static async DetailPaiement(req, res) {
       },
 
       select: {
-        date_inscription: true, 
+        date_inscription: true,
         statut_inscription: true,
         delete_at: true,
         centre: {
           select: {
-            id_centre:true,
+            id_centre: true,
             nom: true,
             delete_at: true,
           },
@@ -2626,8 +2622,8 @@ static async DetailPaiement(req, res) {
 
     const insc = filterOne(inscription).data;
 
-    if(!insc){
-      return res.status(404).json({error:'Cette inscription n\'existe pas'});
+    if (!insc) {
+      return res.status(404).json({ error: "Cette inscription n'existe pas" });
     }
 
     // await redis.del(cacheKey);
@@ -2636,129 +2632,200 @@ static async DetailPaiement(req, res) {
     return res.json({ data: inscription });
   }
 
-static async PaiementByCandidat(req, res) {
-  const paiements = await prisma.paiement.findMany({
-    select: {
-      id_paiement: true,
-      montant: true,
-      date_paiement: true,
-      inscription: {
-        select: {
-          id_inscription: true,
-          date_inscription: true,
-          statut_inscription: true,
-          concours: true,
-          candidat: {
-            select: {
-              id_candidat: true,
-              prenom: true,
-              nom: true,
+  static async PaiementByCandidat(req, res) {
+    const paiements = await prisma.paiement.findMany({
+      select: {
+        id_paiement: true,
+        montant: true,
+        date_paiement: true,
+        inscription: {
+          select: {
+            id_inscription: true,
+            date_inscription: true,
+            statut_inscription: true,
+            concours: true,
+            candidat: {
+              select: {
+                id_candidat: true,
+                prenom: true,
+                nom: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    });
 
-  const grouped = paiements.reduce((acc, p) => {
-    const candidat = p.inscription.candidat;
-    const id = candidat.id_candidat;
+    const grouped = paiements.reduce((acc, p) => {
+      const candidat = p.inscription.candidat;
+      const id = candidat.id_candidat;
 
-    if (!acc[id]) {
-      acc[id] = {
-        candidat,
-        paiements: [],
-      };
+      if (!acc[id]) {
+        acc[id] = {
+          candidat,
+          paiements: [],
+        };
+      }
+
+      acc[id].paiements.push({
+        id_paiement: p.id_paiement,
+        montant: p.montant,
+        date_paiement: p.date_paiement,
+        inscription: {
+          id_inscription: p.inscription.id_inscription,
+          date_inscription: p.inscription.date_inscription,
+          statut_inscription: p.inscription.statut_inscription,
+          concours: p.inscription.concours,
+        },
+      });
+
+      return acc;
+    }, {});
+
+    return res.status(200).json({
+      data: Object.values(grouped),
+    });
+  }
+
+  static async ProfileAdmin(req, res) {
+    const { id_admin } = req.admin;
+    if (!id_admin) {
+      return res
+        .status(400)
+        .json({ error: "Les references de l'administrateur sont requise" });
     }
-
-    acc[id].paiements.push({
-      id_paiement: p.id_paiement,
-      montant: p.montant,
-      date_paiement: p.date_paiement,
-      inscription: {
-        id_inscription: p.inscription.id_inscription,
-        date_inscription: p.inscription.date_inscription,
-        statut_inscription: p.inscription.statut_inscription,
-        concours: p.inscription.concours,
+    const admin = await prisma.admin.findFirst({
+      where: {
+        id_admin: id_admin,
+      },
+      select: {
+        id_admin: true,
+        nom: true,
+        prenom: true,
+        role: true,
       },
     });
 
-    return acc;
-  }, {});
-
-  return res.status(200).json({
-    data: Object.values(grouped),
-  });
-}
-
-static async ProfileAdmin(req,res){
-  const{id_admin} = req.admin;
-  if(!id_admin){
-    return res.status(400).json({error:'Les references de l\'administrateur sont requise'});
-    
-  }
-  const admin =  await prisma.admin.findFirst({
-    where:{
-      id_admin: id_admin
-    },
-    select:{
-      id_admin:true,
-      nom:true,
-      prenom:true,
-      role:true,
+    if (!admin) {
+      return res
+        .status(404)
+        .json({ error: "Aucun admin n'est associe avec ses references" });
     }
-  });
 
-  if(!admin){
-    return res.status(404).json({error:'Aucun admin n\'est associe avec ses references'});
+    return res.status(200).json({ data: admin });
   }
 
-  return res.status(200).json({data:admin});
-}
-
-static async ConcoursCentre (req,res){
-  const id_concours =  parseInt(req.params.id_concours);
-  if(!id_concours){
-    return res.status(400).json({error:'Les references du concours sont requises'});
-  }
-
-  // avant tout verifier si le concours est valide
-
-  const concours = await prisma.concours.findFirst({
-    where:{
-      id_concours:id_concours,
+  static async ConcoursCentre(req, res) {
+    const id_concours = parseInt(req.params.id_concours);
+    if (!id_concours) {
+      return res
+        .status(400)
+        .json({ error: "Les references du concours sont requises" });
     }
-  });
 
-  if(!concours){
-    return res.status(404).json({error:'Aucun concours associe a cette reference'})
-  };
-  const centres = await prisma.concoursCentre.findMany({
-    where:{
-      concoursId:concours.id_concours,
-      
-    },
-    include:{
-      centre:true
+    // avant tout verifier si le concours est valide
+
+    const concours = await prisma.concours.findFirst({
+      where: {
+        id_concours: id_concours,
+      },
+    });
+
+    if (!concours) {
+      return res
+        .status(404)
+        .json({ error: "Aucun concours associe a cette reference" });
     }
-  });
+    const centres = await prisma.concoursCentre.findMany({
+      where: {
+        concoursId: concours.id_concours,
+      },
+      include: {
+        centre: true,
+      },
+    });
 
+    if (!centres || centres.length === 0) {
+      return res
+        .status(404)
+        .json({
+          error:
+            "Ce concours n'a aucun centre.Veuillez ajouter des centres pour ce concours",
+        });
+    }
 
-
-  if(!centres || centres.length === 0){
-    return res.status(404).json({error:'Ce concours n\'a aucun centre.Veuillez ajouter des centres pour ce concours'});
+    const centre = centres.map((c) => ({
+      id_centre: c.centre.id_centre,
+      nom: c.centre.nom,
+    }));
+    return res.status(200).json({
+      data: centre,
+    });
   }
 
-  const centre  =  centres.map((c)=>({
-   
-      id_centre:c.centre.id_centre,
-      nom : c.centre.nom
-  
-  }))
-  return res.status(200).json({
-    data: centre
-  });
-}
+  static async nbCandidatsByconcours(req, res) {
+    const cacheKey = "candidatParInscriptions";
+
+    const data = await redis.get(cacheKey);
+
+    if (data) {
+      return res.status(200).json({ data: JSON.parse(data) });
+    }
+
+    const inscription = await prisma.inscription.findMany({
+      where: {
+        delete_at: null,
+        statut_inscription:'VALIDEE',
+      },
+      select: {
+        id_inscription: true,
+        concours: true,
+        id_candidat: true,
+        paiement: true,
+      },
+    });
+    let montantTotalGlobal = 0;
+    const resultMap = new Map();
+
+    inscription.forEach((i) => {
+      const id = i.concours.id_concours;
+
+      if (!resultMap.has(id)) {
+        resultMap.set(id, {
+          id_inscription: i.id_inscription,
+          nom: i.concours.nom,
+          Nbinscri: 0,
+          Nbpaye: 0,
+        });
+      }
+
+      const data = resultMap.get(id);
+
+      data.Nbinscri += 1;
+
+      const paiementsReussis =
+        i.paiement?.filter((p) => p.statut_paiement === "REUSSI") || [];
+
+      if (paiementsReussis.length > 0) {
+        data.Nbpaye += 1;
+
+        montantTotalGlobal += paiementsReussis.reduce(
+          (sum, p) => sum + Number(p.montant || 0),
+          0,
+        );
+      }
+    });
+    const candidabyconcours = [...resultMap.values()];
+
+    const sortie = {
+      montantTotalGlobal,
+      candidabyconcours,
+    };
+
+    await redis.set(cacheKey, JSON.stringify(sortie), "EX", 300);
+
+    return res.status(200).json({ data: sortie });
+  }
   static async SortieResultat(req, res) {
     // const {id_examen} = req.body;
     // if(!id_examen) {

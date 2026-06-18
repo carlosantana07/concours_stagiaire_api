@@ -17,13 +17,12 @@ const validate = (dto) => [dto, ValidateRequest.handle];
 
 router.post("/login", ...validate(AdminDto.ValidateLogin()), AdminController.Login);
 
-router.get("/categories", AdminController.GetCategorie);
-// router.get('/candidats/get-all/c',AdminController.GetAllCandidat)
-
-router.get('/candidats/detail/:id_candidat', AdminController.DetailCandidat)
-router.get('/concours/concours-centre/:id_concours',AdminController.ConcoursCentre);
 
 router.use(AdminMiddleware.handle);
+
+
+router.get("/categories", AdminController.GetCategorie);
+// router.get('/candidats/get-all/c',AdminController.GetAllCandidat)
 
 
 
@@ -40,7 +39,8 @@ router.get("/concours/search", AdminController.SearchConcours);
 router.get("/concours", AdminController.GetAllConcours);
 router.post("/concours/:id_concours/switch-status",...validate(ConcoursDto.ValideSwitchStatusConcours()) ,AdminController.SwitchStatuConcours);
 router.patch('/concours/auto-switch-status',AdminController.AutoSwitch);
-
+router.get('/concours/concours-centre/:id_concours',AdminController.ConcoursCentre);
+router.get('/concours/candidat-by-concours',AdminController.nbCandidatsByconcours);
 
 router.post("/centres/create", ...validate(AdminDto.ValidateCreateCentre()), AdminController.CreateCentre);
 router.put('/centres/update-centre/:id_centre',...validate(CentreDto.ValidateUpdateCentre()),AdminController.UpdateCentre);
@@ -65,7 +65,7 @@ router.get('/paiement-by-candidat',AdminController.PaiementByCandidat);
 router.get("/candidats/search", AdminController.SearchCandidat);
 router.delete("/candidats/delete/:id_candidat", AdminController.DeleteCandidat);
 router.post('/candidats/create',AdminController.RegisterCandidat);
-
+router.get('/candidats/detail/:id_candidat', AdminController.DetailCandidat)
 router.put('/candidats/update-candidat/:id_candidat',AdminController.UpdateCandidat);
 router.post('/candidats/inscrire-concours', AdminController.InscrireCandidаt)
 router.get('/candidats/all',AdminController.GetAllCandidat);
