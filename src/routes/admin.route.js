@@ -17,15 +17,15 @@ const validate = (dto) => [dto, ValidateRequest.handle];
 
 router.post("/login", ...validate(AdminDto.ValidateLogin()), AdminController.Login);
 
-router.get('/concours/candidat-by-concours',AdminController.nbCandidatsByconcours);
-router.get('/concours/circulaire',AdminController.CharCirculaire);
+
 router.use(AdminMiddleware.handle);
 
 
 router.get("/categories", AdminController.GetCategorie);
 // router.get('/candidats/get-all/c',AdminController.GetAllCandidat)
 
-
+router.get('/concours/candidat-by-concours',AdminController.nbCandidatsByconcours);
+router.get('/concours/circulaire',AdminController.CharCirculaire);
 
 router.get('/admin/get-all-admin',AdminController.GetAllAdmin);
 router.get('/admin/profile/:id_admin',AdminController.ProfileAdmin);
@@ -78,6 +78,8 @@ router.get('/inscriptions/detail-inscription/:id_inscription', AdminController.D
 router.put('/inscriptions/update-status',AdminController.UpdateInscriptionStatus);
 router.put('/inscriptions/update-candidat-centre',AdminController.UpddateCandidatCentre);
 router.delete('/inscriptions/delete-candidat-inscription',AdminController.DeleteCandidatInscription);
+
+router.get('/inscriptions/concours-candidat/:id_concours',AdminController.AllCandidatConcours);
 
 
 router.post("/examens", ...validate(ExaenDto.ValidateCreateExam()), AdminController.CreateExamen);

@@ -883,6 +883,7 @@ export class AdminController {
         id_candidat: id_candidat,
       },
       select: {
+        id_candidat:true,
         nom: true,
         prenom: true,
         nom_jeune_fille: true,
@@ -907,9 +908,9 @@ export class AdminController {
       return res.status(404).json({ error: "Aucun candidat trouve" });
     }
 
-    if (filterOne(candidat).isSup) {
-      return res.status(404).json({ error: "Cet candidat n\'existe pas" });
-    }
+    // if (filterOne(candidat).isSup) {
+    //   return res.status(404).json({ error: "Cet candidat n\'existe pas" });
+    // }
 
     const inscription = await prisma.inscription.findMany({
       where: {
@@ -941,7 +942,7 @@ export class AdminController {
     });
     //
     // mettre en cache
-    await redis.set(cacheKey, JSON.stringify(resp), "EX", 60);
+    await redis.set(cacheKey, JSON.stringify({resp}), "EX", 60);
 
     return res.status(200).json({ resp });
   }
@@ -2881,6 +2882,48 @@ static async CharCirculaire(req, res) {
   data:data
  
   });
+}
+
+static async AllCandidatConcours(req,res){
+  const id_concours = parseInt(params.id_concours);
+
+  if(!id_concours){
+    return res.status(400).json({error:'La reference du concours est requise'});
+  }
+
+  // trouver les incriptions lier a ce concours qu'il soit payant ou pas 
+
+
+// verifier si le  
+  const inscription = await prisma.inscription.findMany({
+    where:{
+      id_concours:id_concours,
+      delete_at:null
+    },
+    
+    select:{
+      statut_inscription:true,
+      date_inscription:true,
+      candidat:{
+        select:{
+          id_candidat:true,
+          nom :true,
+          prenom:true,
+          email:true
+        }
+      },
+  
+    }
+  });
+
+  if(inscription.length === 0) {
+    return res.json([]);
+  }
+
+  return res.status(200).json(inscription)
+
+
+
 }
   static async SortieResultat(req, res) {
     // const {id_examen} = req.body;

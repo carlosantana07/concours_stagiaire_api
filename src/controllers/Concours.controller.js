@@ -68,11 +68,21 @@ static async GetAllConcours(req, res) {
   };
 
    const concours = await prisma.concours.findMany({
+    where:{
+      statut_concours: {not:'FERMER'}
+    },
     select:{
       id_concours:true,
       nom:true,
       nombre_postes:true,
       date_debut:true,
+
+      categorie:{
+        select:{
+          id:true,
+          libelle:true
+        }
+      }
     }
    });
 
