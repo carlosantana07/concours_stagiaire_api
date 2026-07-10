@@ -57,6 +57,13 @@ export class InscriptionController {
         error: "Ce centre n'est pas disponible pour ce concours",
       });
     }
+    // verifer des cases 
+    const cand = await prisma.candidat.findFirst({where:{id_candidat}});
+    if(cand && cand?.matricule.length>0 && concours.type !=='PROFESSIONNEL'){
+        return res.status(409).json({
+        error: "Vous n'etes pas autoriser a passer un autre concours pendant que vous etes dans la fonction publique",
+      });
+    }
 
     const dejaInscrit = await prisma.inscription.findFirst({
       where: { id_candidat, id_concours },
@@ -73,6 +80,7 @@ export class InscriptionController {
         id_inscription: dejaInscrit.id_inscription,
       });
     }
+
 
     const inscription = await prisma.inscription.create({
       data: {

@@ -164,6 +164,7 @@ static async getMesCandidatures(req, res) {
       include: {
         concours: {
           select: {
+            id_concours :true,
             nom:               true,
             type:              true,
             statut_concours:   true,

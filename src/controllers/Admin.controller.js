@@ -2885,7 +2885,7 @@ static async CharCirculaire(req, res) {
 }
 
 static async AllCandidatConcours(req,res){
-  const id_concours = parseInt(params.id_concours);
+  const id_concours = parseInt(req.params.id_concours);
 
   if(!id_concours){
     return res.status(400).json({error:'La reference du concours est requise'});
