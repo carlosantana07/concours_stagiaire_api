@@ -15,7 +15,7 @@ model categorieConcours {
   flgActif         Boolean    @default(true)
   createdBy        Int?
   createdDate      DateTime   @default(now())
-  delete_at         DateTime?
+  delete_at        DateTime?
   lastModifiedBy   Int?
   lastModifiedDate DateTime?  @updatedAt
   concours         concours[]
@@ -38,7 +38,7 @@ model admin {
 model centre {
   id_centre   Int                @id @default(autoincrement())
   nom         String
-  delete_at          DateTime?
+  delete_at   DateTime?
   concours    ConcoursCentre[]
   inscription inscription[]
   lieux       lieuxComposition[]
@@ -102,13 +102,14 @@ model concours {
   update_at         DateTime           @default(now()) @db.Timestamp(6)
   id_concours       Int                @id @default(autoincrement())
   categorieId       Int?
-    delete_at         DateTime?
+  delete_at         DateTime?
   centres           ConcoursCentre[]
   composer          composer[]
   categorie         categorieConcours? @relation(fields: [categorieId], references: [id])
   admin             admin?             @relation(fields: [id_admin], references: [id_admin], onDelete: NoAction, onUpdate: NoAction)
   examen            examen[]
   inscription       inscription[]
+  resultats         resultat[]
 }
 
 model examen {
@@ -124,13 +125,16 @@ model examen {
   id_concours   Int
   concours      concours   @relation(fields: [id_concours], references: [id_concours], onDelete: Cascade, onUpdate: NoAction)
   resultat      resultat[]
+  composers     composer[]
 }
 
 model document {
+  id_document   Int          @id @default(autoincrement())
   fichier       String       @db.VarChar(500)
+  url           String
+  req_id        String
   date_upload   DateTime     @default(now()) @db.Timestamp(6)
   id_candidat   String       @db.Uuid
-  id_document   Int          @id @default(autoincrement())
   type_document TypeDocument
   candidat      candidat     @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
 }
@@ -162,21 +166,24 @@ model paiement {
   id_paiement           Int             @id @default(autoincrement())
   create_at             DateTime        @default(now())
   update_at             DateTime        @default(now())
-    delete_at          DateTime?
+  delete_at             DateTime?
   id_inscription        Int
   inscription           inscription     @relation(fields: [id_inscription], references: [id_inscription], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model resultat {
-  id_candidat      String   @db.Uuid
-  note             Decimal? @db.Decimal(5, 2)
-  moyenne_generale Decimal? @db.Decimal(5, 2)
-  statut           String?  @db.VarChar(50)
+  id_candidat      String    @db.Uuid
+  note             Decimal?  @db.Decimal(5, 2)
+  moyenne_generale Decimal?  @db.Decimal(5, 2)
+  statut           String?   @db.VarChar(50)
+  id_concours      Int
   id_examen        Int
-  create_at        DateTime @default(now())
-  update_at        DateTime @default(now())
-  candidat         candidat @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
-  examen           examen   @relation(fields: [id_examen], references: [id_examen], onDelete: Cascade, onUpdate: NoAction)
+  create_at        DateTime  @default(now())
+  update_at        DateTime  @default(now())
+  delete_at        DateTime?
+  candidat         candidat  @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
+  examen           examen    @relation(fields: [id_examen], references: [id_examen], onDelete: Cascade, onUpdate: NoAction)
+  concours         concours  @relation(fields: [id_concours], references: [id_concours], onDelete: NoAction)
 
   @@id([id_candidat, id_examen])
 }
@@ -193,17 +200,19 @@ model lieuxComposition {
 }
 
 model composer {
-  id_composer Int              @id @default(autoincrement())
-  id_candidat String           @db.Uuid
-  id_concours Int
-  id_lieux    Int
-  create_at   DateTime         @default(now())
-  update_at   DateTime         @default(now())
-  candidat    candidat         @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade)
-  concours    concours         @relation(fields: [id_concours], references: [id_concours], onDelete: Cascade)
-  lieux       lieuxComposition @relation(fields: [id_lieux], references: [id_lieux], onDelete: Cascade)
+  id_composer         Int              @id @default(autoincrement())
+  id_candidat         String           @db.Uuid
+  id_examen           Int
+  id_lieux            Int
+  create_at           DateTime         @default(now())
+  update_at           DateTime         @default(now())
+  candidat            candidat         @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade)
+  examen              examen           @relation(fields: [id_examen], references: [id_examen], onDelete: Cascade)
+  lieux               lieuxComposition @relation(fields: [id_lieux], references: [id_lieux], onDelete: Cascade)
+  concours            concours?        @relation(fields: [concoursId_concours], references: [id_concours])
+  concoursId_concours Int?
 
-  @@unique([id_candidat, id_concours])
+  @@unique([id_candidat, id_examen])
 }
 
 enum RoleAdmin {
@@ -266,4 +275,8 @@ enum TypeDocument {
   LICENCE
   MASTER
   DOCTORAT
+  CNIB
+  PASSPORT
+  NATIONALITE
+  DIPLOME
 }

@@ -171,6 +171,8 @@ export class AuthController {
       return res.status(400).json({ error: "Mot de passe requis" });
     }
 
+    
+
     const candidat = await prisma.candidat.findFirst({
       where: { telephone: formatted },
     });
@@ -183,15 +185,15 @@ export class AuthController {
       // un message d'erreur lui sera envoye pour qu'il contacte le service de maintenance de la platefome
 
       // const result = filterOne(candidat);
-      // // console.log('result', result)
-      // if (result.success === true) {
-      //   return res
-      //     .status(401)
-      //     .json({
-      //       error:
-      //         "Votre compte subi une resctriction .\n veuillez contacter le service de maintenance \n pour plus de renseignement et traitement de votre demande ",
-      //     });
-      // }
+      // console.log('result', result)
+      if (candidat.delete_at) {
+        return res
+          .status(401)
+          .json({
+            error:
+              "Votre compte a subi une resctriction.\n Veuillez contacter le support technique. \n Pour plus de renseignement et traitement de votre demande ",
+          });
+      }
 
     const motDePasseCorrect = await bcrypt.compare(
       mot_de_passe,

@@ -1,7 +1,6 @@
-version: '3.9'
+version: "3.9"
 
 services:
-
   # minio:
   #   image: quay.io/minio/minio:latest
   #   container_name: e-concours-minio
@@ -65,6 +64,22 @@ services:
     networks:
       - e-concours-network
 
+  api-Econcours:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-Econcours
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    networks:
+      - Econcours-network
+
 volumes:
   # minio_data:
   redis_data:
@@ -72,5 +87,5 @@ volumes:
   azure_config:
 
 networks:
-  e-concours-network:
+  Econcours-network:
     driver: bridge

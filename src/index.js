@@ -1,7 +1,7 @@
-import dotenv from 'dotenv'
+import dotenv from "dotenv";
 dotenv.config();
 
-import '../src/middleware/routerPatch.js'
+import "../src/middleware/routerPatch.js";
 import express from "express";
 import candidatRoutes from "./routes/candidat.route.js";
 import authRoutes from "./routes/auth.route.js";
@@ -13,21 +13,26 @@ import connection from "./config/redis.js";
 import inscriptionRoutes from "./routes/inscription.route.js";
 import paiementRoutes from "./routes/paiement.route.js";
 import concoursRoutes from "./routes/concours.route.js";
-import { limiter } from "./middleware/rateLimiter.js";
+import { rateLi } from "./middleware/rateLimiter.js";
 import examenRoutes from "./routes/examen.route.js";
 
-
 // import { ensureBucketExists } from "./config/minio.js";
-import { UpdateStatusConcours } from './cron/Cron.js';
+import { UpdateStatusConcours ,UpdateDateConcours} from "./cron/Cron.js";
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 // await ensureBucketExists('e-concours');
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(helmet());
 app.use(express.json());
-app.use(limiter);
+app.use(rateLi.limiter);
 
 app.use("/api/inscription", inscriptionRoutes);
 app.use("/api/auth", authRoutes);
@@ -45,13 +50,14 @@ app.get("/", (req, res) => {
 
 // Middleware d'erreur global  ici les erreurs 500 sont renvonyer genre un try  global
 app.use((err, req, res, next) => {
-  console.error('Erreur serveur :', err.message);
-  return res.status(500).json({ error: 'Une erreur interne est survenue' });
+  console.error("Erreur serveur :", err.message);
+  return res.status(500).json({ error: "Une erreur interne est survenue" });
 });
 
-// ici je vais mettre les cron  pour les taches automatiques 
+// ici je vais mettre les cron  pour les taches automatiques
 
 UpdateStatusConcours();
+UpdateDateConcours();
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

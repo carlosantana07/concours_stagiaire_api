@@ -1,6 +1,9 @@
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 
-export const limiter = rateLimit({
+export class rateLi {
+  
+
+static limiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 100,
 
@@ -16,30 +19,27 @@ export const limiter = rateLimit({
 });
 
 
-export const authLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 5,
+  static authLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    limit: 5,
+
+    message: {
+      error: "Trop de tentatives, réessayez dans 10 minutes",
+    },
+
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
 
 
-  keyGenerator: ipKeyGenerator,
-
-  message: {
-    error: "Trop de tentatives, reessayez dans 10 minutes",
-  },
-
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-
-export const otpLimiter = rateLimit({
+static otpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 3,
 
   keyGenerator: (req) => {
     const id = req.body.email || req.body.telephone;
 
-    // ✅ meilleur: identifiant + fallback IP safe
+    
     return id ? `otp:${id}` : ipKeyGenerator(req);
   },
 
@@ -50,3 +50,5 @@ export const otpLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+};

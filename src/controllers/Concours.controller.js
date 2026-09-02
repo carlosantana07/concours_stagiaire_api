@@ -76,6 +76,7 @@ static async GetAllConcours(req, res) {
       nom:true,
       nombre_postes:true,
       date_debut:true,
+      date_fin:true,
 
       categorie:{
         select:{
@@ -87,11 +88,14 @@ static async GetAllConcours(req, res) {
    });
 
   //  console.log("TOTAL :", concours.length);
+  // faire confiance a personne et a aucune donnees recu 
 
-  await redis.set(cacheKey,JSON.stringify(concours),'EX',ConcoursController.TTL);
+  const conc = concours.filter((c)=>c.date_fin > new Date())
+
+  await redis.set(cacheKey,JSON.stringify(conc),'EX',ConcoursController.TTL);
 
    return res.status(200).json({
-      data: concours
+      data: conc
    });
 }
 

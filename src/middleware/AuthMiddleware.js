@@ -2,7 +2,6 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../prisma.js";
 
 export class AuthMiddleware {
-
   static async protect(req, res, next) {
     try {
       const token = req.headers.authorization?.split(" ")[1];
@@ -13,7 +12,9 @@ export class AuthMiddleware {
         decoded = jwt.verify(token, process.env.JWT_SECRET);
       } catch (err) {
         if (err.name === "TokenExpiredError") {
-          return res.status(401).json({ error: "Votre token a expiré, veuillez vous reconnecter" });
+          return res
+            .status(401)
+            .json({ error: "Votre token a expiré, veuillez vous reconnecter" });
         }
         return res.status(401).json({ error: "Token invalide" });
       }
@@ -26,6 +27,18 @@ export class AuthMiddleware {
         return res.status(401).json({ error: "Utilisateur introuvable" });
       }
 
+          if (user.delete_at) {
+
+        return res
+          .status(401)
+          .json({
+            error:
+              "Votre compte a ete restreint. Veuillez contacter le service d'assitance",
+          });
+      }
+
+      console.log(user);
+
       req.user = user;
       next();
     } catch (error) {
@@ -36,7 +49,6 @@ export class AuthMiddleware {
 
   static async CompteVerifier(req, res, next) {
     try {
-
       const user = req.user;
 
       if (!user) {
@@ -49,6 +61,15 @@ export class AuthMiddleware {
         });
       }
 
+      if (user.delete_at) {
+        return res
+          .status(401)
+          .json({
+            error:
+              "Votre compte a ete restreint. Veuillez contacter le service d'assitance",
+          });
+      }
+
       next();
     } catch (err) {
       console.error(err);
@@ -56,22 +77,22 @@ export class AuthMiddleware {
     }
   }
 
-  static async CompteSupprimer (req,res,next){
-    try{
+  static async CompteSupprimer(req, res, next) {
+    try {
       const user = req.user;
-          if (!user) {
+      if (!user) {
         return res.status(401).json({ error: "Veuillez vous authentifier" });
       }
 
-      if(user.delete_at !== null){
+      if (user.delete_at !== null) {
         return res.status(403).json({
-          error:"Votre compte a ete restreint.",
-          message: 'Contacter l\'assistance pour une suite dans la gestion de votre compte'
-        })
+          error: "Votre compte a ete restreint.",
+          message:
+            "Contacter l'assistance pour une suite dans la gestion de votre compte",
+        });
       }
       next();
-    }
-    catch(err){
+    } catch (err) {
       console.error(err);
       return res.status(500).json({ error: "Erreur serveur" });
     }

@@ -1,6 +1,5 @@
-import prisma from '../prisma.js'
-import bcrypt from 'bcrypt'
-
+import prisma from "../prisma.js";
+import bcrypt from "bcrypt";
 
 export const getAllCandidats = async () => {
   return prisma.candidat.findMany({
@@ -14,9 +13,8 @@ export const getAllCandidats = async () => {
       type_candidat: true,
       statut_compte: true,
     },
-  })
-}
-
+  });
+};
 
 export const getCandidatById = async (id) => {
   const candidat = await prisma.candidat.findUnique({
@@ -41,34 +39,48 @@ export const getCandidatById = async (id) => {
       statut_compte: true,
       date_creation: true,
     },
-  })
+  });
 
-  if (!candidat) throw { status: 404, message: 'Candidat non trouvé' }
-  return candidat
-}
-
+  if (!candidat) throw { status: 404, message: "Candidat non trouvé" };
+  return candidat;
+};
 
 export const createCandidat = async (data) => {
   const {
-    nom, prenom, nom_jeune_fille, sexe, date_naissance,
-    lieu_naissance, pays_naissance, numero_cnib, date_delivrance,
-    telephone, email, mot_de_passe, type_candidat,
-    matricule, emploi, ministere,
-  } = data
+    nom,
+    prenom,
+    nom_jeune_fille,
+    sexe,
+    date_naissance,
+    lieu_naissance,
+    pays_naissance,
+    numero_cnib,
+    date_delivrance,
+    telephone,
+    email,
+    mot_de_passe,
+    type_candidat,
+    matricule,
+    emploi,
+    ministere,
+  } = data;
 
-  
-  const emailExist = await prisma.candidat.findUnique({ where: { email } })
-  if (emailExist) throw { status: 409, message: 'Email déjà utilisé' }
+  const emailExist = await prisma.candidat.findUnique({ where: { email } });
+  if (emailExist) throw { status: 409, message: "Email déjà utilisé" };
 
-  const cnibExist = await prisma.candidat.findUnique({ where: { numero_cnib } })
-  if (cnibExist) throw { status: 409, message: 'Numéro CNIB déjà utilisé' }
+  const cnibExist = await prisma.candidat.findUnique({
+    where: { numero_cnib },
+  });
+  if (cnibExist) throw { status: 409, message: "Numéro CNIB déjà utilisé" };
 
- 
-  if (type_candidat === 'PROFESSIONNEL' && !matricule) {
-    throw { status: 400, message: 'Le matricule est obligatoire pour un candidat professionnel' }
+  if (type_candidat === "PROFESSIONNEL" && !matricule) {
+    throw {
+      status: 400,
+      message: "Le matricule est obligatoire pour un candidat professionnel",
+    };
   }
 
-  const motDePasseHashe = await bcrypt.hash(mot_de_passe, 10)
+  const motDePasseHashe = await bcrypt.hash(mot_de_passe, 10);
 
   return prisma.candidat.create({
     data: {
@@ -84,10 +96,10 @@ export const createCandidat = async (data) => {
       telephone,
       email,
       mot_de_passe: motDePasseHashe,
-      type_candidat: type_candidat || 'DIRECT',
-      matricule: type_candidat === 'PROFESSIONNEL' ? matricule : null,
-      emploi: type_candidat === 'PROFESSIONNEL' ? emploi : null,
-      ministere: type_candidat === 'PROFESSIONNEL' ? ministere : null,
+      type_candidat: type_candidat || "DIRECT",
+      matricule: type_candidat === "PROFESSIONNEL" ? matricule : null,
+      emploi: type_candidat === "PROFESSIONNEL" ? emploi : null,
+      ministere: type_candidat === "PROFESSIONNEL" ? ministere : null,
     },
     select: {
       id_candidat: true,
@@ -97,21 +109,34 @@ export const createCandidat = async (data) => {
       telephone: true,
       type_candidat: true,
     },
-  })
-}
-
+  });
+};
 
 export const updateCandidat = async (id, data) => {
   const {
-    nom, prenom, nom_jeune_fille, sexe, date_naissance,
-    lieu_naissance, pays_naissance, numero_cnib, date_delivrance,
-    telephone, email, recepisse, statut_compte,
-    matricule, emploi, ministere,
-  } = data
+    nom,
+    prenom,
+    nom_jeune_fille,
+    sexe,
+    date_naissance,
+    lieu_naissance,
+    pays_naissance,
+    numero_cnib,
+    date_delivrance,
+    telephone,
+    email,
+    recepisse,
+    statut_compte,
+    matricule,
+    emploi,
+    ministere,
+  } = data;
 
   // Vérifier que le candidat existe
-  const exist = await prisma.candidat.findUnique({ where: { id_candidat: id } })
-  if (!exist) throw { status: 404, message: 'Candidat non trouvé' }
+  const exist = await prisma.candidat.findUnique({
+    where: { id_candidat: id },
+  });
+  if (!exist) throw { status: 404, message: "Candidat non trouvé" };
 
   return prisma.candidat.update({
     where: { id_candidat: id },
@@ -141,16 +166,17 @@ export const updateCandidat = async (id, data) => {
       telephone: true,
       type_candidat: true,
     },
-  })
-}
-
+  });
+};
 
 export const deleteCandidat = async (id) => {
-  const exist = await prisma.candidat.findUnique({ where: { id_candidat: id } })
-  if (!exist) throw { status: 404, message: 'Candidat non trouvé' }
+  const exist = await prisma.candidat.findUnique({
+    where: { id_candidat: id },
+  });
+  if (!exist) throw { status: 404, message: "Candidat non trouvé" };
 
   return prisma.candidat.delete({
     where: { id_candidat: id },
     select: { id_candidat: true, nom: true, prenom: true },
-  })
-}
+  });
+};

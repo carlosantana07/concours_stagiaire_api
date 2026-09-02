@@ -1,42 +1,33 @@
-import dotenv from "dotenv";
-dotenv.config();
-
-import {
-  BlobServiceClient,
-  generateBlobSASQueryParameters,
-  BlobSASPermissions,
-} from "@azure/storage-blob";
-import { DefaultAzureCredential } from "@azure/identity";
+import { BlobServiceClient } from "@azure/storage-blob";
 import { v1 as uuidv1 } from "uuid";
 
 class AzureBlob {
   constructor() {
-    this.accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
-    this.containerName = "e-concours";
+    this.connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+
+    this.containerName =
+      process.env.AZURE_STORAGE_CONTAINER_NAME || "e-concours";
 
     this.blobServiceClient = null;
     this.containerClient = null;
   }
 
-  #verifyAccount() {
-    return this.accountName != null && this.accountName.trim() !== "";
+  #verifyConnectionString() {
+    return this.connectionString != null && this.connectionString.trim() !== "";
   }
 
   static #Years() {
     return new Date().getFullYear();
   }
 
-  // initialisation....
-
   async init() {
     try {
-      if (!this.#verifyAccount()) {
-        throw new Error("Compte Azure storage introuvable");
+      if (!this.#verifyConnectionString()) {
+        throw new Error("AZURE_STORAGE_CONNECTION_STRING introuvable");
       }
 
-      this.blobServiceClient = new BlobServiceClient(
-        `https://${this.accountName}.blob.core.windows.net`,
-        new DefaultAzureCredential(),
+      this.blobServiceClient = BlobServiceClient.fromConnectionString(
+        this.connectionString,
       );
 
       this.containerClient = this.blobServiceClient.getContainerClient(
@@ -57,7 +48,6 @@ class AzureBlob {
     }
   }
 
-  // uploads des fichiers dans azure blob
   async Uploads(data) {
     const response = {
       error: false,
@@ -75,11 +65,11 @@ class AzureBlob {
 
       if (!data || data.length === 0) {
         response.error = true;
-        response.message = "aucune donnée reçue en entrée";
+        response.message = "Aucune donnée reçue en entrée";
         return response;
       }
 
-      let results = [];
+      const results = [];
 
       for (const d of data) {
         const blobName = "e-concours-" + AzureBlob.#Years() + "-" + uuidv1();
@@ -104,28 +94,121 @@ class AzureBlob {
       return {
         error: true,
         message: err.message,
+        resp: [],
       };
     }
   }
 
-  // generer un access url pour que le admin puisse visionner les documents associer a chaque utilisateur
-  // la methode neccessite encore des amelioration raison pour laquelle elle est mise en commmentaire
+  async Update(blobName, data) {
+    const response = {
+      error: false,
+      message: "",
+      success: false,
+      resp: [],
+    };
 
-  //   generateAccessUrl(containerClient, blobName) {
-  //   const blobClient = containerClient.getBlobClient(blobName);
+    try {
+      if (!this.containerClient) {
+        response.error = true;
+        response.message = "Azure non initialisé. Appelle init() d'abord.";
+        return response;
+      }
 
-  //   const sas = generateBlobSASQueryParameters(
-  //     {
-  //       containerName: containerClient.containerName,
-  //       blobName,
-  //       permissions: BlobSASPermissions.parse("r"),
-  //       expiresOn: new Date(new Date().valueOf() + 3600 * 1000), // 1h
-  //     },
-  //     this.blobServiceClient.credential
-  //   ).toString();
+      if (!blobName || blobName.trim() === "") {
+        response.error = true;
+        response.message = "Le nom du fichier est obligatoire";
+        return response;
+      }
 
-  //   return `${blobClient.url}?${sas}`;
-  // }
+      if (!data || !data.buffer) {
+        response.error = true;
+        response.message = "Aucune donnée reçue pour la modification";
+        return response;
+      }
+
+      const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);
+
+      const exists = await blockBlobClient.exists();
+
+      if (!exists) {
+        response.error = true;
+        response.message = "Le fichier demandé n'existe pas";
+        return response;
+      }
+
+      const uploadBlobResponse = await blockBlobClient.uploadData(data.buffer);
+
+      response.success = true;
+      response.message = "Fichier modifié avec succès";
+
+      response.resp = {
+        nom: blobName,
+        url: blockBlobClient.url,
+        requestId: uploadBlobResponse.requestId,
+      };
+
+      return response;
+    } catch (err) {
+      return {
+        error: true,
+        message: err.message,
+        success: false,
+        resp: [],
+      };
+    }
+  }
+
+  async Delete(blobName) {
+    const response = {
+      error: false,
+      message: "",
+      success: false,
+      resp: [],
+    };
+
+    try {
+      if (!this.containerClient) {
+        response.error = true;
+        response.message = "Azure non initialisé. Appelle init() d'abord.";
+        return response;
+      }
+
+      if (!blobName || blobName.trim() === "") {
+        response.error = true;
+        response.message = "Le nom du fichier est obligatoire";
+        return response;
+      }
+
+      const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);
+
+      const exists = await blockBlobClient.exists();
+
+      if (!exists) {
+        response.error = true;
+        response.message = "Le fichier demandé n'existe pas";
+        return response;
+      }
+
+      const deleteResponse = await blockBlobClient.delete();
+
+      response.success = true;
+      response.message = "Fichier supprimé avec succès";
+
+      response.resp = {
+        nom: blobName,
+        requestId: deleteResponse.requestId,
+      };
+
+      return response;
+    } catch (err) {
+      return {
+        error: true,
+        message: err.message,
+        success: false,
+        resp: [],
+      };
+    }
+  }
 }
 
 export default AzureBlob;
