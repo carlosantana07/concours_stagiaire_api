@@ -1,12 +1,18 @@
 import connection from "../config/redis.js";
 import { prisma } from "../prisma.js";
 import { generateReceipt } from "../services/Upload-file.service.js";
-const redis =  connection;
+const redis = connection;
 export class InscriptionController {
   static async sInscrire(req, res) {
     const { id_candidat } = req.user;
     const id_concours = parseInt(req.body.id_concours);
     const id_centre = parseInt(req.body.id_centre);
+
+    // console.log({
+    //   centre: id_centre,
+    //   concours: id_concours,
+    //   candidat: id_candidat,
+    // });
 
     if (!id_candidat) {
       return res.status(401).json({ error: "Non autorisé" });
@@ -42,12 +48,19 @@ export class InscriptionController {
     dateDebut.setHours(0, 0, 0, 0);
     dateFin.setHours(0, 0, 0, 0);
 
-    if (aujourd_hui < dateDebut || aujourd_hui > dateFin) {
+    // if (aujourd_hui < dateDebut || aujourd_hui > dateFin) {
+    //   return res.status(400).json({
+    //     error: "La période d'inscription est fermée",
+    //   });
+    // }
+
+    if (aujourd_hui > dateFin) {
       return res.status(400).json({
         error: "La période d'inscription est fermée",
       });
     }
 
+    // console.log('apres auj')
     const centreValide = await prisma.ConcoursCentre.findFirst({
       where: { concoursId: id_concours, centreId: id_centre },
     });
@@ -57,17 +70,28 @@ export class InscriptionController {
         error: "Ce centre n'est pas disponible pour ce concours",
       });
     }
-    // verifer des cases 
-    const cand = await prisma.candidat.findFirst({where:{id_candidat}});
-    if(cand && cand?.matricule.length>0 && concours.type !=='PROFESSIONNEL'){
-        return res.status(409).json({
-        error: "Vous n'etes pas autoriser a passer un autre concours pendant que vous etes dans la fonction publique",
+    // verifer des cases
+        // console.log('centre valide ', centreValide)
+        // console.log('canidadat ', id_candidat)
+    const cand = await prisma.candidat.findFirst({ where: { id_candidat: id_candidat } });
+
+    // console.log ('trouver le candidat ', cand)
+    if (
+      cand &&
+      cand.matricule &&
+      concours.type !== "PROFESSIONNEL"
+    ) {
+      return res.status(409).json({
+        error:
+          "Vous n'etes pas autoriser a passer un autre concours pendant que vous etes dans la fonction publique",
       });
     }
 
     const dejaInscrit = await prisma.inscription.findFirst({
-      where: { id_candidat, id_concours },
+      where: { id_candidat:id_candidat, id_concours:id_concours },
     });
+
+    //  console.debug ('deja inscrit ', dejaInscrit)
 
     if (dejaInscrit) {
       const messageStatut =
@@ -80,7 +104,6 @@ export class InscriptionController {
         id_inscription: dejaInscrit.id_inscription,
       });
     }
-
 
     const inscription = await prisma.inscription.create({
       data: {
