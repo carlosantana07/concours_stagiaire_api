@@ -35,7 +35,7 @@ function genererDate(anneeMin, anneeMax) {
 }
 
 async function main() {
-  console.log("🚀 Démarrage du seed...\n");
+  console.log("Démarrage du seed...\n");
 
   // ── ADMIN ──────────────────────────────────────────────────
   let admin = await prisma.admin.findUnique({
@@ -54,7 +54,7 @@ async function main() {
       },
     });
   }
-  console.log("✅ Admin prêt");
+  console.log("Admin prêt");
 
   // ── CENTRES ────────────────────────────────────────────────
   const centresData = [
@@ -67,7 +67,7 @@ async function main() {
     if (!c) c = await prisma.centre.create({ data: { nom } });
     centres.push(c);
   }
-  console.log(`✅ ${centres.length} centres prêts`);
+  console.log(` ${centres.length} centres prêts`);
 
   // ── LIEUX DE COMPOSITION ───────────────────────────────────
   const lieuxData = [
@@ -90,7 +90,7 @@ async function main() {
     if (!lieu) lieu = await prisma.lieuxComposition.create({ data: l });
     lieux.push(lieu);
   }
-  console.log(`✅ ${lieux.length} lieux de composition prêts`);
+  console.log(` ${lieux.length} lieux de composition prêts`);
 
   // ── CATEGORIES ─────────────────────────────────────────────
   const categoriesData = [
@@ -109,7 +109,7 @@ async function main() {
     if (!cat_) cat_ = await prisma.categorieConcours.create({ data: cat });
     categories.push(cat_);
   }
-  console.log(`✅ ${categories.length} catégories prêtes`);
+  console.log(` ${categories.length} catégories prêtes`);
 
   // ── CONCOURS ───────────────────────────────────────────────
   const TYPES = ["DIRECT", "PROFESSIONNEL"];
@@ -174,7 +174,7 @@ for (const { centreIds, ...fields } of concoursData) {
   concoursList.push(concours);
 }
 
-console.log(`✅ ${concoursList.length} concours prêts`);
+console.log(` ${concoursList.length} concours prêts`);
 
   // ── CANDIDAT DE TEST ───────────────────────────────────────
   // déclaré avec let ici — c'est le fix principal
@@ -202,7 +202,7 @@ console.log(`✅ ${concoursList.length} concours prêts`);
       },
     });
   }
-  console.log("✅ Candidat de test prêt");
+  console.log(" Candidat de test prêt");
 
   // ── INSCRIPTION DU CANDIDAT DE TEST ───────────────────────
 for (const concours of concoursList) {
@@ -230,7 +230,7 @@ for (const concours of concoursList) {
     });
   }
 }
-  console.log("✅ Inscriptions du candidat de test prêtes");
+  console.log("Inscriptions du candidat de test prêtes");
 
   // ── 10 000 CANDIDATS EN MASSE ──────────────────────────────
   const MOT_DE_PASSE_HASH = await bcrypt.hash("Password@123", 10);
@@ -281,15 +281,15 @@ for (const concours of concoursList) {
       lot_num++;
       process.stdout.write(`\r   Lot ${lot_num} — ${total_crees}/${TOTAL} candidats créés`);
     }
-    console.log("\n✅ Candidats créés");
+    console.log("\n Candidats créés");
   }
 
   // ── INSCRIPTIONS EN MASSE ──────────────────────────────────
   const existantesInscriptions = await prisma.inscription.count();
   if (existantesInscriptions >= TOTAL) {
-    console.log(`⚠️  ${existantesInscriptions} inscriptions déjà présentes, étape ignorée.`);
+    console.log(` ${existantesInscriptions} inscriptions déjà présentes, étape ignorée.`);
   } else {
-    console.log("\n⏳ Création des inscriptions...");
+    console.log("\n Création des inscriptions...");
 
     const tousLesCandidats = await prisma.candidat.findMany({
       select: { id_candidat: true },
@@ -334,7 +334,7 @@ for (const concours of concoursList) {
       inscriptions_creees += lot.length;
       process.stdout.write(`\r   ${inscriptions_creees}/${tousLesCandidats.length} inscriptions créées`);
     }
-    console.log("\n✅ Inscriptions créées");
+    console.log("\n Inscriptions créées");
   }
 
   // ── RÉSUMÉ ─────────────────────────────────────────────────
@@ -344,15 +344,15 @@ for (const concours of concoursList) {
   ]);
 
   console.log("\n─────────────────────────────────────");
-  console.log(`🎉 Seed terminé !`);
-  console.log(`   👤 Candidats    : ${nbCandidats.toLocaleString()}`);
-  console.log(`   📋 Inscriptions : ${nbInscriptions.toLocaleString()}`);
+  console.log(`Seed terminé !`);
+  console.log(`Candidats    : ${nbCandidats.toLocaleString()}`);
+  console.log(`Inscriptions : ${nbInscriptions.toLocaleString()}`);
   console.log("─────────────────────────────────────\n");
 }
 
 main()
   .catch((err) => {
-    console.error("\n❌ Erreur seed :", err);
+    console.error("\n Erreur seed :", err);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());

@@ -796,10 +796,9 @@ export class AdminController {
     // recuperer tous les candidats et les mettres en caache
 
     const candidat = await prisma.candidat.findMany({
-      take:300,
+      take: 300,
       skip,
       select: {
-        
         id_candidat: true,
         nom: true,
         prenom: true,
@@ -886,7 +885,7 @@ export class AdminController {
         id_candidat: id_candidat,
       },
       select: {
-        id_candidat:true,
+        id_candidat: true,
         nom: true,
         prenom: true,
         nom_jeune_fille: true,
@@ -904,6 +903,14 @@ export class AdminController {
         ministere: true,
         statut_compte: true,
         date_creation: true,
+
+        document:{
+          select:{
+            id_document:true,
+            fichier:true,
+            url:true
+          }
+        }
       },
     });
 
@@ -945,7 +952,7 @@ export class AdminController {
     });
     //
     // mettre en cache
-    await redis.set(cacheKey, JSON.stringify({resp}), "EX", 60);
+    await redis.set(cacheKey, JSON.stringify({ resp }), "EX", 60);
 
     return res.status(200).json({ resp });
   }
@@ -1467,7 +1474,7 @@ export class AdminController {
   static async CreateExamen(req, res) {
     const {
       intitule,
-      type_examen,
+      // type_examen,
       coefficient,
       date_examen,
       heure,
@@ -1481,7 +1488,7 @@ export class AdminController {
       return res.status(400).json({ error: "ID de concours invalide" });
     }
 
-    const cacheKey = `exmamen:${id_concours}`;
+    const cacheKey = `examen:${id_concours}`;
 
     await redis.del(cacheKey);
 
@@ -1496,8 +1503,8 @@ export class AdminController {
     const examen = await prisma.examen.create({
       data: {
         intitule,
-        type_examen,
-        coefficient,
+        // type_examen,
+        // coefficient,
         date_examen: new Date(date_examen),
         heure: heure ? new Date(heure) : null,
         lieu,
@@ -1517,7 +1524,7 @@ export class AdminController {
       return res.status(400).json({ error: "ID de concours invalide" });
     }
 
-    const cacheKey = `exmamen:${id_concours}`;
+    const cacheKey = `examen:${id_concours}`;
 
     const data = await redis.get(cacheKey);
     if (data) {
@@ -1568,7 +1575,7 @@ export class AdminController {
       return res.status(404).json({ error: "Examen introuvable" });
     }
 
-    const cacheKey = `exmamen:${examen.id_concours}`;
+    const cacheKey = `examen:${examen.id_concours}`;
 
     await redis.del(cacheKey);
 
@@ -1603,7 +1610,7 @@ export class AdminController {
       return res.status(404).json({ error: "Examen introuvable" });
     }
 
-    const cacheKey = `exmamen:${examen.id_concours}`;
+    const cacheKey = `examen:${examen.id_concours}`;
 
     await redis.del(cacheKey);
 
@@ -2146,6 +2153,8 @@ export class AdminController {
       //   });
       // }
 
+      console.log("recu ici");
+
       if (!file) {
         return res.status(400).json({
           error: "aucun fichier uploadé",
@@ -2197,7 +2206,7 @@ export class AdminController {
 
       /// recuperer la question et la reponse pour mettre en db
 
-      await prisma.$transaction(async (tx) => {});
+      // await prisma.$transaction(async (tx) => {});
 
       return res.status(200).json({
         success: true,
@@ -2479,8 +2488,8 @@ export class AdminController {
         delete_at: null,
       },
 
-      take:300,
-      
+      take: 300,
+
       select: {
         id_inscription: true,
         date_inscription: true,
@@ -2752,12 +2761,10 @@ export class AdminController {
     });
 
     if (!centres || centres.length === 0) {
-      return res
-        .status(404)
-        .json({
-          error:
-            "Ce concours n'a aucun centre.Veuillez ajouter des centres pour ce concours",
-        });
+      return res.status(404).json({
+        error:
+          "Ce concours n'a aucun centre.Veuillez ajouter des centres pour ce concours",
+      });
     }
 
     const centre = centres.map((c) => ({
@@ -2833,103 +2840,96 @@ export class AdminController {
     return res.status(200).json({ data: sortie });
   }
 
-static async CharCirculaire(req, res) {
-  const candidats = await prisma.candidat.findMany({
-    where: {
-      delete_at: null,
-    },
-  });
-
-
-  const now = new Date();
-
-  const startOfThisWeek = new Date(now);
-  const day = now.getDay() || 7;
-  startOfThisWeek.setHours(0, 0, 0, 0);
-  startOfThisWeek.setDate(now.getDate() - day + 1);
-
-  const endOfThisWeek = new Date(startOfThisWeek);
-  endOfThisWeek.setDate(startOfThisWeek.getDate() + 6);
-  endOfThisWeek.setHours(23, 59, 59, 999);
-
-  const startOfLastWeek = new Date(startOfThisWeek);
-  startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
-
-  const endOfLastWeek = new Date(startOfThisWeek);
-  endOfLastWeek.setMilliseconds(-1);
-
-
-  const thisWeek = candidats.filter((c) => {
-    const date = new Date(c.date_creation);
-    return date >= startOfThisWeek && date <= endOfThisWeek;
-  });
-
-  const lastWeek = candidats.filter((c) => {
-    const date = new Date(c.date_creation);
-    return date >= startOfLastWeek && date <= endOfLastWeek;
-  });
-
-  const total = candidats.length;
-
-  const nouveau = thisWeek.length;
-  const ancien = lastWeek.length;
-  const autres = total - (nouveau + ancien);
-
-
-  const data = {
-    total,
-    thisWeek: nouveau,
-    lastWeek: ancien,
-    autres
-  };
-
-  return res.status(200).json({
-  data:data
- 
-  });
-}
-
-static async AllCandidatConcours(req,res){
-  const id_concours = parseInt(req.params.id_concours);
-
-  if(!id_concours){
-    return res.status(400).json({error:'La reference du concours est requise'});
-  }
-
-  // trouver les incriptions lier a ce concours qu'il soit payant ou pas 
-
-
-// verifier si le  
-  const inscription = await prisma.inscription.findMany({
-    where:{
-      id_concours:id_concours,
-      delete_at:null
-    },
-    
-    select:{
-      statut_inscription:true,
-      date_inscription:true,
-      candidat:{
-        select:{
-          id_candidat:true,
-          nom :true,
-          prenom:true,
-          email:true
-        }
+  static async CharCirculaire(req, res) {
+    const candidats = await prisma.candidat.findMany({
+      where: {
+        delete_at: null,
       },
-  
-    }
-  });
+    });
 
-  if(inscription.length === 0) {
-    return res.json([]);
+    const now = new Date();
+
+    const startOfThisWeek = new Date(now);
+    const day = now.getDay() || 7;
+    startOfThisWeek.setHours(0, 0, 0, 0);
+    startOfThisWeek.setDate(now.getDate() - day + 1);
+
+    const endOfThisWeek = new Date(startOfThisWeek);
+    endOfThisWeek.setDate(startOfThisWeek.getDate() + 6);
+    endOfThisWeek.setHours(23, 59, 59, 999);
+
+    const startOfLastWeek = new Date(startOfThisWeek);
+    startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+
+    const endOfLastWeek = new Date(startOfThisWeek);
+    endOfLastWeek.setMilliseconds(-1);
+
+    const thisWeek = candidats.filter((c) => {
+      const date = new Date(c.date_creation);
+      return date >= startOfThisWeek && date <= endOfThisWeek;
+    });
+
+    const lastWeek = candidats.filter((c) => {
+      const date = new Date(c.date_creation);
+      return date >= startOfLastWeek && date <= endOfLastWeek;
+    });
+
+    const total = candidats.length;
+
+    const nouveau = thisWeek.length;
+    const ancien = lastWeek.length;
+    const autres = total - (nouveau + ancien);
+
+    const data = {
+      total,
+      thisWeek: nouveau,
+      lastWeek: ancien,
+      autres,
+    };
+
+    return res.status(200).json({
+      data: data,
+    });
   }
 
-  return res.status(200).json(inscription)
+  static async AllCandidatConcours(req, res) {
+    const id_concours = parseInt(req.params.id_concours);
 
+    if (!id_concours) {
+      return res
+        .status(400)
+        .json({ error: "La reference du concours est requise" });
+    }
 
+    // trouver les incriptions lier a ce concours qu'il soit payant ou pas
 
-}
+    // verifier si le
+    const inscription = await prisma.inscription.findMany({
+      where: {
+        id_concours: id_concours,
+        delete_at: null,
+      },
+
+      select: {
+        statut_inscription: true,
+        date_inscription: true,
+        candidat: {
+          select: {
+            id_candidat: true,
+            nom: true,
+            prenom: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (inscription.length === 0) {
+      return res.json([]);
+    }
+
+    return res.status(200).json(inscription);
+  }
   static async SortieResultat(req, res) {
     // const {id_examen} = req.body;
     // if(!id_examen) {
@@ -2957,5 +2957,40 @@ static async AllCandidatConcours(req,res){
     }
 
     // permettre le telecharement du fichier
+  }
+
+  static async PutResltat(req, res) {
+    // recevoir les resultats en un ou en masse
+    const { id_concours, id_examen } = req.params;
+    const correction = new CorrectionRep();
+    // recuperations des donnees
+
+    const data = correction.RecupCorrection(id_concours);
+
+    if (!data.success) {
+      return res.status(500).json({
+        error: "Une erreur est survenue lors de la recuperations des donnees ",
+      });
+    }
+
+    const rep = data.data;
+    // ajouter les resultats
+    await prisma.$transaction(async (tx) => {
+      for (const e of rep) {
+        await tx.resultat.createMany({
+          data: {
+            id_concours: id_concours,
+            id_examen: id_examen,
+            note_cg: e.note_cg,
+            note_sp: e.note_sp,
+            id_candidat: e.id_candidat,
+          },
+        });
+      }
+    });
+
+    return res
+      .status(200)
+      .json({ message: "Les resultats pour cet examen ont ete mise a jour" });
   }
 }

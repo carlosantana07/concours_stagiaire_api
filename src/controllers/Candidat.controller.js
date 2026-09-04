@@ -43,6 +43,7 @@ export class CandidatController {
           select: {
             type_document: true,
             fichier: true,
+            url : true,
             date_upload: true,
           },
         },
@@ -228,63 +229,63 @@ export class CandidatController {
     });
   }
 
-  static async getResultats(req, res) {
-    const { id_candidat } = req.user;
+  // static async getResultats(req, res) {
+  //   const { id_candidat } = req.user;
 
-    if (!id_candidat) {
-      return res.status(401).json({ error: "Id_candidat invalide" });
-    }
+  //   if (!id_candidat) {
+  //     return res.status(401).json({ error: "Id_candidat invalide" });
+  //   }
 
-    const resultats = await prisma.resultat.findMany({
-      where: { id_candidat },
-      include: {
-        examen: {
-          select: {
-            intitule: true,
-            date_examen: true,
-            lieu: true,
-            type_examen: true,
-            coefficient: true,
-            concours: {
-              select: { nom: true, type: true },
-            },
-          },
-        },
-      },
-    });
+  //   const resultats = await prisma.resultat.findMany({
+  //     where: { id_candidat },
+  //     include: {
+  //       examen: {
+  //         select: {
+  //           intitule: true,
+  //           date_examen: true,
+  //           lieu: true,
+  //           type_examen: true,
+  //           coefficient: true,
+  //           concours: {
+  //             select: { nom: true, type: true },
+  //           },
+  //         },
+  //       },
+  //     },
+  //   });
 
-    if (!resultats || resultats.length === 0) {
-      return res.status(200).json({
-        message: "Aucun résultat disponible pour le moment",
-        data: [],
-      });
-    }
+  //   if (!resultats || resultats.length === 0) {
+  //     return res.status(200).json({
+  //       message: "Aucun résultat disponible pour le moment",
+  //       data: [],
+  //     });
+  //   }
 
-    const parConcours = resultats.reduce((acc, r) => {
-      const nomConcours = r.examen.concours.nom;
-      if (!acc[nomConcours]) {
-        acc[nomConcours] = {
-          concours: r.examen.concours,
-          examens: [],
-        };
-      }
-      acc[nomConcours].examens.push({
-        intitule: r.examen.intitule,
-        type_examen: r.examen.type_examen,
-        date_examen: r.examen.date_examen,
-        lieu: r.examen.lieu,
-        coefficient: r.examen.coefficient,
-        note: r.note,
-        moyenne_generale: r.moyenne_generale,
-        statut: r.statut,
-      });
-      return acc;
-    }, {});
+  //   const parConcours = resultats.reduce((acc, r) => {
+  //     const nomConcours = r.examen.concours.nom;
+  //     if (!acc[nomConcours]) {
+  //       acc[nomConcours] = {
+  //         concours: r.examen.concours,
+  //         examens: [],
+  //       };
+  //     }
+  //     acc[nomConcours].examens.push({
+  //       intitule: r.examen.intitule,
+  //       type_examen: r.examen.type_examen,
+  //       date_examen: r.examen.date_examen,
+  //       lieu: r.examen.lieu,
+  //       coefficient: r.examen.coefficient,
+  //       note: r.note,
+  //       moyenne_generale: r.moyenne_generale,
+  //       statut: r.statut,
+  //     });
+  //     return acc;
+  //   }, {});
 
-    return res.status(200).json({
-      data: Object.values(parConcours),
-    });
-  }
+  //   return res.status(200).json({
+  //     data: Object.values(parConcours),
+  //   });
+  // }
 
   static async getRecepisse(req, res) {
     const { id_candidat } = req.user;
@@ -468,14 +469,29 @@ export class CandidatController {
 
     console.log("id utilisateur ", id_candidat);
     if (!id_candidat || !type_document) {
-      return res
-        .status(400)
-        .json({
-          error: "le type de document requis ou une autre erreur est survene ",
-        });
+      return res.status(400).json({
+        error: "le type de document requis ou une autre erreur est survene ",
+      });
     }
 
-    const typesValides = ["CNIB", "PASSPORT"];
+    // verfier s'il a deja des dcouments comme cnib
+
+    const exist = await prisma.document.findMany({
+      where: {
+        id_candidat: id_candidat,
+        type_document: {
+          in: ["CNIB", "PASSPORT", "NATIONALITE"],
+        },
+      },
+    });
+
+    if (exist && exist.length >= 2) {
+      return res.status(409).json({
+        error: "Vous ne pouvez plus inserer d'image sauf pour modification",
+      });
+    }
+
+    const typesValides = ["CNIB", "PASSPORT","NATIONALITE"];
     if (!typesValides.includes(type_document.toUpperCase())) {
       return res.status(400).json({
         error: "Type de document invalide. Utilisez CNIB ou PASSPORT",
@@ -532,7 +548,7 @@ export class CandidatController {
           const doc = await tx.document.create({
             data: {
               id_candidat,
-              type_document:type_document.toUpperCase() ,
+              type_document: type_document.toUpperCase(),
               fichier: blobInfo.nom,
               url: blobInfo.url,
               req_id: blobInfo.requestId,
@@ -546,7 +562,7 @@ export class CandidatController {
         return created;
       });
 
-      console.log('documents', documents)
+      console.log("documents", documents);
       return res.status(201).json({
         success: true,
         message: `${documents.length} document(s) uploadé(s) avec succès`,
@@ -563,14 +579,14 @@ export class CandidatController {
   }
 
   static async updateDocumentAzure(req, res) {
-    const { blobName } = req.params; 
+    const { blobName } = req.params;
 
     const file = req.file;
 
     if (!blobName) {
       return res.status(400).json({ error: "Nom du blob manquant" });
     }
-    if (!file) {
+    if (!file) {candidat_id
       return res
         .status(400)
         .json({ error: "Aucun fichier fourni pour la mise à jour" });
@@ -603,7 +619,7 @@ export class CandidatController {
 
     // Mettre à jour la date dans la base (facultatif)
     await prisma.document.update({
-      where: { id: existingDoc.id ,id_candidat},
+      where: { id: existingDoc.id, id_candidat },
       data: { date_upload: new Date() },
     });
 
@@ -620,7 +636,7 @@ export class CandidatController {
 
   static async deleteDocumentAzure(req, res) {
     const { blobName } = req.params;
-    const {id_candidat} = req.user;
+    const { id_candidat } = req.user;
 
     if (!blobName) {
       return res.status(400).json({ error: "Nom du blob manquant" });
@@ -628,7 +644,7 @@ export class CandidatController {
 
     // Vérifier l'existence en base
     const existingDoc = await prisma.document.findFirst({
-      where: { fichier: blobName ,id_candidat},
+      where: { fichier: blobName, id_candidat },
     });
     if (!existingDoc) {
       return res.status(404).json({ error: "Document introuvable en base" });
@@ -664,49 +680,78 @@ export class CandidatController {
   }
 
   static async getResultats(req, res) {
-    const candidat_id = req.candidat;
+    const { id_candidat } = req.user;
 
-    if (!candidat_id) {
+    if (!id_candidat) {
       return res.status(401).json({ Error: "Veuillez vous connecter" });
     }
     // recuperer les ids des inscriptions resussi
 
-    const idsIncre =  await prisma.inscription.findMany({
-      where:{
+    const idsIncre = await prisma.inscription.findMany({
+      where: {
         id_candidat,
-        delete_at:null,
-        statut_inscription: 'VALIDEE'
+        delete_at: null,
+        statut_inscription: "VALIDEE",
       },
-      select:{
-        id_concours:true
-      }
+      select: {
+        id_concours: true,
+      },
     });
 
+    // verfier que ses inscriptions ont des paiements ....
+
+    // const paiement = await prisma.paiement.findMany({
+    //   where:{
+    //     id_inscription:{
+    //       in: idsIncre
+    //     },
+    //     statut_paiement:'REUSSI'
+    //   }
+    // });
+
+    // if(paiement.length !== idsIncre.length){
+
+    // }
+
+    const marge = 60;
 
     const resultat = await prisma.resultat.findMany({
-      where:{
-        id_concours:{
-          in:idsIncre
-        }
-      },
-      select:{
-        note:true,
-        moyenne_generale: true,
-        statut:true,
-        
-        concours:{
-          select:{
-            id_concours:true,
-            nom: true
-          }
+      where: {
+        id_concours: {
+          in: idsIncre,
         },
-        examen:{
-          select:{
-            id_concours:true,
-            intitule:true
-          }
-        }
-      }
-    })
+      },
+      select: {
+        note_cg: true,
+        note_sp: true,
+        // moyenne_generale: true,
+        statut: true,
+
+        concours: {
+          select: {
+            id_concours: true,
+            nom: true,
+          },
+        },
+        examen: {
+          select: {
+            id_concours: true,
+            intitule: true,
+          },
+        },
+      },
+    });
+
+    // ajouter la moyenne
+
+    const rs = resultat.map((r) => ({
+      ...r,
+      moyenne: r.note_sp * (marge / 100) + r.note_cg * ((100 - marge) / 100),
+    }));
+
+    // calculer les rangs
+    
+
+    return res.status(200).json(rs);
   }
 }

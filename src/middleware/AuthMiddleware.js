@@ -37,12 +37,12 @@ export class AuthMiddleware {
           });
       }
 
-      console.log(user);
+      // console.log(user);
 
       req.user = user;
       next();
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       return res.status(500).json({ error: "Erreur serveur" });
     }
   }

@@ -6,6 +6,7 @@ import { upload, can } from "../middleware/upload.middleware.js";
 const router = Router();
 // const ctrl   = new CandidatController();
 
+
 router.use(AuthMiddleware.protect);
 router.use(AuthMiddleware.CompteSupprimer);
 

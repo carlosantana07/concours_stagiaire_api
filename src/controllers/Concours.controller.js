@@ -95,7 +95,8 @@ static async GetAllConcours(req, res) {
   await redis.set(cacheKey,JSON.stringify(conc),'EX',ConcoursController.TTL);
 
    return res.status(200).json({
-      data: conc
+      data: conc,
+      nb: conc.length
    });
 }
 

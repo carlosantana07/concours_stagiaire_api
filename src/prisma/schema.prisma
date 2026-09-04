@@ -116,7 +116,7 @@ model examen {
   date_examen   DateTime   @db.Date
   heure         DateTime?  @db.Time(6)
   lieu          String?    @db.VarChar(200)
-  coefficient   Int        @default(1)
+  // coefficient   Int        @default(1)
   intitule      String     @db.VarChar(200)
   type_examen   TypeExamen @default(ECRIT)
   date_creation DateTime   @default(now()) @db.Timestamp(6)
@@ -127,6 +127,12 @@ model examen {
   resultat      resultat[]
   composers     composer[]
 }
+
+// model Questionnaire { 
+//   id_questionnaire      String @id @default(uuid())
+//   id_examen             Int 
+//   questions             
+// }
 
 model document {
   id_document   Int          @id @default(autoincrement())
@@ -171,11 +177,16 @@ model paiement {
   inscription           inscription     @relation(fields: [id_inscription], references: [id_inscription], onDelete: Cascade, onUpdate: NoAction)
 }
 
+// cg = culture generale 
+// sp = specialisation
+
 model resultat {
   id_candidat      String    @db.Uuid
-  note             Decimal?  @db.Decimal(5, 2)
-  moyenne_generale Decimal?  @db.Decimal(5, 2)
-  statut           String?   @db.VarChar(50)
+  note_cg             Decimal?  @db.Decimal(5, 2)
+  note_sp            Decimal?  @db.Decimal(5, 2)
+  // moyenne_generale Decimal?  @db.Decimal(5, 2)
+
+  statut      StatutResultat?
   id_concours      Int
   id_examen        Int
   create_at        DateTime  @default(now())
@@ -225,6 +236,12 @@ enum Sexe {
   FEMME
 }
 
+enum StatutResultat {
+  REUSSI
+  AJOURNE
+  ATTENTE
+  INDISPONIBLE
+}
 enum StatutCompte {
   ACTIF
   INACTIF

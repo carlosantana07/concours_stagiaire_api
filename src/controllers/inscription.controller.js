@@ -3,6 +3,7 @@ import { prisma } from "../prisma.js";
 import { generateReceipt } from "../services/Upload-file.service.js";
 const redis = connection;
 export class InscriptionController {
+  
   static async sInscrire(req, res) {
     const { id_candidat } = req.user;
     const id_concours = parseInt(req.body.id_concours);
@@ -81,9 +82,12 @@ export class InscriptionController {
       cand.matricule &&
       concours.type !== "PROFESSIONNEL"
     ) {
+      // logger pour dire que 
+
+      console.log(`Le candidat ${id_candidat} est deja dans la fonction publique`)
       return res.status(409).json({
         error:
-          "Vous n'etes pas autoriser a passer un autre concours pendant que vous etes dans la fonction publique",
+          "Vous n'etes pas autoriser a passer un autre concours.",
       });
     }
 
@@ -96,8 +100,8 @@ export class InscriptionController {
     if (dejaInscrit) {
       const messageStatut =
         dejaInscrit.statut_inscription === "VALIDEE"
-          ? "Vous êtes déjà inscrit et votre paiement est validé"
-          : "Vous avez déjà une inscription en attente de paiement";
+          ? "Vous êtes déjà inscrit  a ce concours ."
+          : "Vous etes deja inscit(e) a ce concours et est  en attente de paiement";
 
       return res.status(409).json({
         error: messageStatut,
