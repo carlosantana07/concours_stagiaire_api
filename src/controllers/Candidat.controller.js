@@ -724,7 +724,7 @@ export class CandidatController {
 
     const cacheKey = "document";
     const docs = await redis.get(cacheKey);
-    if (docs.length > 0) {
+    if (docs?.length > 0) {
       return res.status(200).json({ data: docs });
     }
     const document = await prisma.document.findMany({
@@ -753,8 +753,8 @@ export class CandidatController {
     const idsIncre = await prisma.inscription.findMany({
       where: {
         id_candidat,
-        delete_at: null,
-        statut_inscription: "VALIDEE",
+        // delete_at: null,
+        // statut_inscription: "VALIDEE",
       },
       select: {
         id_concours: true,
@@ -762,6 +762,8 @@ export class CandidatController {
     });
 
     const ids = idsIncre.map((f) => parseInt(f.id_concours));
+
+    
     // verfier que ses inscriptions ont des paiements ....
 
     // const paiement = await prisma.paiement.findMany({
