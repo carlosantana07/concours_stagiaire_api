@@ -699,6 +699,7 @@ export class CandidatController {
       },
     });
 
+    const ids = idsIncre.map((f) => parseInt(f.id_concours));
     // verfier que ses inscriptions ont des paiements ....
 
     // const paiement = await prisma.paiement.findMany({
@@ -716,40 +717,36 @@ export class CandidatController {
 
     const marge = 60;
 
-    const resu = [];
-
-    for (const i in idsIncre) {
-      const resultat = await prisma.resultat.findMany({
-        where: {
-          id_concours: i,
+    const resultat = await prisma.resultat.findMany({
+      where: {
+        id_concours: {
+          in: ids,
         },
-        select: {
-          note_cg: true,
-          note_sp: true,
-          // moyenne_generale: true,
-          statut: true,
+      },
+      select: {
+        note_cg: true,
+        note_sp: true,
+        // moyenne_generale: true,
+        statut: true,
 
-          concours: {
-            select: {
-              id_concours: true,
-              nom: true,
-            },
-          },
-          examen: {
-            select: {
-              id_concours: true,
-              intitule: true,
-            },
+        concours: {
+          select: {
+            id_concours: true,
+            nom: true,
           },
         },
-      });
-
-      resu.push(resultat);
-    }
+        examen: {
+          select: {
+            id_concours: true,
+            intitule: true,
+          },
+        },
+      },
+    });
 
     // ajouter la moyenne
 
-    const rs = resu.map((r) => ({
+    const rs = resultat.map((r) => ({
       ...r,
       moyenne: r.note_sp * (marge / 100) + r.note_cg * ((100 - marge) / 100),
     }));
