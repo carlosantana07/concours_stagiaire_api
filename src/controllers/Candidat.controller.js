@@ -43,7 +43,7 @@ export class CandidatController {
           select: {
             type_document: true,
             fichier: true,
-            url : true,
+            url: true,
             date_upload: true,
           },
         },
@@ -491,7 +491,7 @@ export class CandidatController {
       });
     }
 
-    const typesValides = ["CNIB", "PASSPORT","NATIONALITE"];
+    const typesValides = ["CNIB", "PASSPORT", "NATIONALITE"];
     if (!typesValides.includes(type_document.toUpperCase())) {
       return res.status(400).json({
         error: "Type de document invalide. Utilisez CNIB ou PASSPORT",
@@ -586,7 +586,8 @@ export class CandidatController {
     if (!blobName) {
       return res.status(400).json({ error: "Nom du blob manquant" });
     }
-    if (!file) {candidat_id
+    if (!file) {
+      candidat_id;
       return res
         .status(400)
         .json({ error: "Aucun fichier fourni pour la mise à jour" });
@@ -682,9 +683,9 @@ export class CandidatController {
   static async getResultats(req, res) {
     const { id_candidat } = req.user;
 
-    if (!id_candidat) {
-      return res.status(401).json({ Error: "Veuillez vous connecter" });
-    }
+    // if (!id_candidat) {
+    //   return res.status(401).json({ Error: "Veuillez vous connecter" });
+    // }
     // recuperer les ids des inscriptions resussi
 
     const idsIncre = await prisma.inscription.findMany({
@@ -715,42 +716,45 @@ export class CandidatController {
 
     const marge = 60;
 
-    const resultat = await prisma.resultat.findMany({
-      where: {
-        id_concours: {
-          in: idsIncre,
-        },
-      },
-      select: {
-        note_cg: true,
-        note_sp: true,
-        // moyenne_generale: true,
-        statut: true,
+    const resu = [];
 
-        concours: {
-          select: {
-            id_concours: true,
-            nom: true,
+    for (const i in idsIncre) {
+      const resultat = await prisma.resultat.findMany({
+        where: {
+          id_concours: i,
+        },
+        select: {
+          note_cg: true,
+          note_sp: true,
+          // moyenne_generale: true,
+          statut: true,
+
+          concours: {
+            select: {
+              id_concours: true,
+              nom: true,
+            },
+          },
+          examen: {
+            select: {
+              id_concours: true,
+              intitule: true,
+            },
           },
         },
-        examen: {
-          select: {
-            id_concours: true,
-            intitule: true,
-          },
-        },
-      },
-    });
+      });
+
+      resu.push(resultat);
+    }
 
     // ajouter la moyenne
 
-    const rs = resultat.map((r) => ({
+    const rs = resu.map((r) => ({
       ...r,
       moyenne: r.note_sp * (marge / 100) + r.note_cg * ((100 - marge) / 100),
     }));
 
     // calculer les rangs
-    
 
     return res.status(200).json(rs);
   }

@@ -904,13 +904,13 @@ export class AdminController {
         statut_compte: true,
         date_creation: true,
 
-        document:{
-          select:{
-            id_document:true,
-            fichier:true,
-            url:true
-          }
-        }
+        document: {
+          select: {
+            id_document: true,
+            fichier: true,
+            url: true,
+          },
+        },
       },
     });
 
@@ -2992,5 +2992,43 @@ export class AdminController {
     return res
       .status(200)
       .json({ message: "Les resultats pour cet examen ont ete mise a jour" });
+  }
+
+  static async getResultat(req, res) {
+    // const page = parseInt(req.query.page) || 1;
+    // const limit = 10;
+    // const skip = (page - 1) * limit;
+
+    const CacheKey = "resultat";
+    // verfier si les donnees existe en cache
+    const data = await redis.get(CacheKey);
+
+    if (data) {
+      return res.status(200).json({ resultat: data });
+    }
+
+    const resultat = await prisma.resultat.findMany({
+      select: {
+        id_concours: true,
+        note_cg: true,
+        note_sp: true,
+        candidat: {
+          select: {
+            nom: true,
+            prenom: true,
+          },
+        },
+      },
+    });
+
+    const marge = 60;
+    const rs = resultat.map((f) => ({
+      ...f,
+      moyenne: (marge / 100) * f.note_sp + ((100 - marge) / 100) * f.note_cg,
+    }));
+
+    await redis.set(CacheKey, JSON.stringify(rs), "EX", 300);
+
+    return res.status(200).json({ resultat: rs });
   }
 }

@@ -180,6 +180,9 @@ router.post(
   AdminController.Register,
 );
 
+router.get('/concours/resultat',AdminController.getResultat);
+router.post('/concours/put-resultat',AdminController.PutResltat);
+
 // a prevoir modifier le role ou assigner un nouveau role
 
 export default router;
