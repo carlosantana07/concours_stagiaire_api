@@ -4,8 +4,10 @@ import { uploadToMinio } from "../services/Upload-file.service.js";
 import { generateReceipt } from "../services/Upload-file.service.js";
 import AzureBlob from "../services/Azure.blob.service.js";
 import pkg from "../generated/prisma/index.js";
-const { TypeDocument } = pkg;
+import connection from "../config/redis.js";
+// const { TypeDocument } = pkg;
 
+const redis = connection;
 export class CandidatController {
   // constructor (){
 
@@ -466,13 +468,15 @@ export class CandidatController {
   static async uploadDocumentsAzure(req, res) {
     const { id_candidat } = req.user;
     const { type_document } = req.body;
-
-    console.log("id utilisateur ", id_candidat);
+    const cacheKey = "document";
+    // console.log("id utilisateur ", id_candidat);
     if (!id_candidat || !type_document) {
       return res.status(400).json({
         error: "le type de document requis ou une autre erreur est survene ",
       });
     }
+
+    // voir dabord si les deux type de document
 
     // verfier s'il a deja des dcouments comme cnib
 
@@ -491,6 +495,34 @@ export class CandidatController {
       });
     }
 
+    // verifiers si il n'a pas upload plusieurs fois cnib ou nationalite
+
+    const existType = await prisma.document.findFirst({
+      where: {
+        id_candidat: id_candidat,
+      },
+      select: {
+        type_document: true,
+      },
+    });
+
+    if (
+      existType?.type_document.toLowerCase() === type_document.toLowerCase()
+    ) {
+      return res.status(409).json({
+        error: "Vous avez deja inserer ce document en base de donnees",
+      });
+    }
+
+    if (
+      type_document.toLowerCase() === "cnib" ||
+      ("passport" && existType.type_document.toLocaleLowerCase === "cnib") ||
+      "passport"
+    ) {
+      return res
+        .status(409)
+        .json({ error: "Vous devez inserer votre certificat de nationalite" });
+    }
     const typesValides = ["CNIB", "PASSPORT", "NATIONALITE"];
     if (!typesValides.includes(type_document.toUpperCase())) {
       return res.status(400).json({
@@ -563,6 +595,8 @@ export class CandidatController {
       });
 
       console.log("documents", documents);
+
+      await redis.del(cacheKey);
       return res.status(201).json({
         success: true,
         message: `${documents.length} document(s) uploadé(s) avec succès`,
@@ -580,7 +614,7 @@ export class CandidatController {
 
   static async updateDocumentAzure(req, res) {
     const { blobName } = req.params;
-
+    const cacheKey = "document";
     const file = req.file;
 
     if (!blobName) {
@@ -624,6 +658,7 @@ export class CandidatController {
       data: { date_upload: new Date() },
     });
 
+    await redis.del(cacheKey);
     return res.status(200).json({
       success: true,
       message: "Document mis à jour avec succès",
@@ -638,6 +673,8 @@ export class CandidatController {
   static async deleteDocumentAzure(req, res) {
     const { blobName } = req.params;
     const { id_candidat } = req.user;
+
+    const cacheKey = "document";
 
     if (!blobName) {
       return res.status(400).json({ error: "Nom du blob manquant" });
@@ -673,11 +710,36 @@ export class CandidatController {
       where: { id: existingDoc.id, id_candidat },
     });
 
+    await redis.del(cacheKey);
+
     return res.status(200).json({
       success: true,
       message: "Document supprimé avec succès",
       deleted: blobName,
     });
+  }
+
+  static async mesDocuments(req, res) {
+    const { id_candidat } = req.user;
+
+    const cacheKey = "document";
+    const docs = await redis.get(cacheKey);
+    if (docs.length > 0) {
+      return res.status(200).json({ data: docs });
+    }
+    const document = await prisma.document.findMany({
+      where: {
+        id_candidat: id_candidat,
+      },
+      select: {
+        url: true,
+        type_document: true,
+      },
+    });
+
+    await redis.set(cacheKey, JSON.stringify(document), "EX", 300);
+
+    return res.status(200).json({ data: document });
   }
 
   static async getResultats(req, res) {

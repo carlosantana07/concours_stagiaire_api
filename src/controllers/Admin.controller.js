@@ -17,7 +17,7 @@ import fs from "fs";
 import { type } from "os";
 import { error } from "console";
 import filterDeleted from "../utils/filter.js";
-import Redis from "ioredis";
+// import Redis from "ioredis";
 import AdminRessource from "../resource/admin.resource.js";
 import CandidatRessouce from "../resource/candidat.resource.js";
 import filterOne from "../utils/filterOne.js";
@@ -2959,7 +2959,7 @@ export class AdminController {
     // permettre le telecharement du fichier
   }
 
-  static async PutResltat(req, res) {
+  static async PutResultat(req, res) {
     // recevoir les resultats en un ou en masse
     const { id_concours, id_examen } = req.params;
     const correction = new CorrectionRep();

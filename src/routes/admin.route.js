@@ -181,7 +181,7 @@ router.post(
 );
 
 router.get('/concours/resultat',AdminController.getResultat);
-router.post('/concours/put-resultat',AdminController.PutResltat);
+router.post('/concours/put-resultat',AdminController.PutResultat);
 
 // a prevoir modifier le role ou assigner un nouveau role
 
