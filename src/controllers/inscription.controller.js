@@ -1,9 +1,9 @@
 import connection from "../config/redis.js";
 import { prisma } from "../prisma.js";
 import { generateReceipt } from "../services/Upload-file.service.js";
+import AzureBlob from "../services/Azure.blob.service.js";
 const redis = connection;
 export class InscriptionController {
-  
   static async sInscrire(req, res) {
     const { id_candidat } = req.user;
     const id_concours = parseInt(req.body.id_concours);
@@ -72,27 +72,26 @@ export class InscriptionController {
       });
     }
     // verifer des cases
-        // console.log('centre valide ', centreValide)
-        // console.log('canidadat ', id_candidat)
-    const cand = await prisma.candidat.findFirst({ where: { id_candidat: id_candidat } });
+    // console.log('centre valide ', centreValide)
+    // console.log('canidadat ', id_candidat)
+    const cand = await prisma.candidat.findFirst({
+      where: { id_candidat: id_candidat },
+    });
 
     // console.log ('trouver le candidat ', cand)
-    if (
-      cand &&
-      cand.matricule &&
-      concours.type !== "PROFESSIONNEL"
-    ) {
-      // logger pour dire que 
+    if (cand && cand.matricule && concours.type !== "PROFESSIONNEL") {
+      // logger pour dire que
 
-      console.log(`Le candidat ${id_candidat} est deja dans la fonction publique`)
+      console.log(
+        `Le candidat ${id_candidat} est deja dans la fonction publique`,
+      );
       return res.status(409).json({
-        error:
-          "Vous n'etes pas autoriser a passer un autre concours.",
+        error: "Vous n'etes pas autoriser a passer un autre concours.",
       });
     }
 
     const dejaInscrit = await prisma.inscription.findFirst({
-      where: { id_candidat:id_candidat, id_concours:id_concours },
+      where: { id_candidat: id_candidat, id_concours: id_concours },
     });
 
     //  console.debug ('deja inscrit ', dejaInscrit)
@@ -107,6 +106,42 @@ export class InscriptionController {
         error: messageStatut,
         id_inscription: dejaInscrit.id_inscription,
       });
+    }
+
+    // uploader le diplome ici en mm temps
+
+    const files = req.files;
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: "Aucun fichier reçu" });
+    }
+    const fileBuffers = files.map((file) => ({
+      buffer: file.buffer,
+      originalName: file.originalname,
+      mimetype: file.mimetype,
+    }));
+    const azure = new AzureBlob();
+    const initResult = await azure.init();
+    if (!initResult.success) {
+      return res.status(500).json({
+        error: "Erreur de connexion Azure",
+        details: initResult.error,
+      });
+    }
+
+    let uploadResult;
+    try {
+      uploadResult = await azure.Uploads(fileBuffers);
+    } catch (error) {
+      return res.status(500).json({
+        error: "Erreur lors de l'upload Azure",
+        details: error.message,
+      });
+    }
+
+    if (!uploadResult.success) {
+      return res
+        .status(500)
+        .json({ error: "Échec de l'upload", details: uploadResult.message });
     }
 
     const inscription = await prisma.inscription.create({
@@ -135,20 +170,54 @@ export class InscriptionController {
         .json({ error: "Échec de la création de l'inscription" });
     }
 
-    const cacheKey = `InscriptionAll`;
+    try {
+      const documents = await prisma.$transaction(async (tx) => {
+        const created = [];
+        for (let i = 0; i < uploadResult.resp.length; i++) {
+          const blobInfo = uploadResult.resp[i];
 
-    await redis.del(cacheKey);
-    return res.status(201).json({
-      message: "Inscription créée — en attente de paiement",
-      data: {
-        id_inscription: inscription.id_inscription,
-        date_inscription: inscription.date_inscription,
-        statut_inscription: inscription.statut_inscription,
-        concours: inscription.concours,
-        centre: inscription.centre,
-        prochaine_etape: "Effectuez le paiement pour confirmer votre dossier",
-      },
-    });
+          // console.log(blobInfo);
+
+          const doc = await tx.diplome.create({
+            data: {
+              fichier: blobInfo.nom,
+              url: blobInfo.url,
+              req_id: blobInfo.requestId,
+              date_upload: new Date(),
+              id_inscription: inscription.id_inscription,
+            },
+          });
+
+          // console.log(doc)
+          created.push(doc);
+        }
+        return created;
+      });
+
+      console.log("documents", documents);
+
+      const cacheKey = `InscriptionAll`;
+
+      await redis.del(cacheKey);
+      return res.status(201).json({
+        message: "Inscription créée — en attente de paiement",
+        data: {
+          id_inscription: inscription.id_inscription,
+          date_inscription: inscription.date_inscription,
+          statut_inscription: inscription.statut_inscription,
+          concours: inscription.concours,
+          centre: inscription.centre,
+          prochaine_etape: "Effectuez le paiement pour confirmer votre dossier",
+        },
+      });
+    } catch (dbError) {
+      // En cas d'échec de l'insertion, on pourrait envisager de supprimer les blobs déjà créés
+      // (nettoyage), mais ce n'est pas obligatoire selon votre logique métier.
+      return res.status(500).json({
+        error: "Erreur lors de l'enregistrement en base",
+        details: dbError.message,
+      });
+    }
   }
 
   static async getInscription(req, res) {

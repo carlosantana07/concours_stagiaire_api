@@ -1620,7 +1620,23 @@ export class AdminController {
   }
 
   static async getAllExam(req, res) {
-    const examen = await prisma.examen.findMany();
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    // const cachekey = `examen`;
+
+    // const data = await redis.get(cachekey);
+
+    // if (data) {
+    //   return res.status(200).json(data);
+    // }
+    const examen = await prisma.examen.findMany({
+      take: limit,
+      skip,
+    });
+
+    // await redis.set(cachekey, JSON.stringify(examen));
     return res.status(200).json(examen);
   }
 
@@ -2511,6 +2527,11 @@ export class AdminController {
             nom: true,
           },
         },
+        diplomes:{
+          select:{
+            url:true,
+          }
+        }
         // paiement: {
         //   select: {
         //     id_paiement: true,
@@ -2537,6 +2558,7 @@ export class AdminController {
         date_inscription: ins.date_inscription,
         statut_inscription: ins.statut_inscription,
         concours: ins.concours,
+
       });
 
       return acc;
@@ -2628,6 +2650,11 @@ export class AdminController {
             },
           },
         },
+        diplomes:{
+          select:{
+            url:true
+          }
+        }
       },
     });
 
@@ -2959,6 +2986,459 @@ export class AdminController {
     // permettre le telecharement du fichier
   }
 
+static async CreateClient(req, res) {
+  try {
+    const { type: rawType } = req.body || {};
+    const file = req.file;
+
+    const type = String(rawType || "").toLowerCase().trim();
+    //  const id_admin = req.admin.id_admin;
+    const type_create = [
+      "candidat",
+      "concours",
+      "inscription",
+      "examen",
+      "centre",
+    ];
+
+    if (!type_create.includes(type)) {
+      return res.status(400).json({
+        error: "Cette action ne peut pas être effectuée",
+      });
+    }
+
+    if (!file) {
+      return res.status(400).json({
+        error: "Aucun fichier uploadé",
+      });
+    }
+
+    const validExtension = ["xls", "xlsx", "xlsb", "xltx", "xltm", "csv"];
+
+    const extension = path
+      .extname(file.originalname)
+      .replace(".", "")
+      .toLowerCase();
+
+    if (!validExtension.includes(extension)) {
+      return res.status(400).json({
+        error: `Veuillez insérer un fichier Excel : ${validExtension.join(", ")}`,
+      });
+    }
+
+    const cand = [
+      "nom",
+      "prenom",
+      "sexe",
+      "date_naissance",
+      "lieu_naissance",
+      "pays_naissance",
+      "numero_cnib",
+      "date_delivrance",
+      "telephone",
+      "email",
+      "mot_de_passe",
+      "statut_compte",
+      "type_candidat",
+    ];
+
+    const concours = [
+      "nom",
+      "type",
+      "nombres_postes",
+      "annee",
+      "date_debut",
+      "date_fin",
+      "categorie",
+      "centres",
+    ];
+
+    const inscri = ["id_candidat", "id_concours", "id_centre"];
+    const centr = ["nom"];
+    const examen = ["date_examen", "heure", "intitule", "id_concours"];
+
+    const types = {
+      candidat: cand,
+      concours: concours,
+      inscription: inscri,
+      centre: centr,
+      examen: examen,
+    };
+
+    const workbook = xlsx.read(file.buffer, {
+      type: "buffer",
+    });
+
+    const sheetName = workbook.SheetNames[0];
+
+    if (!sheetName) {
+      return res.status(400).json({
+        error: "Aucune feuille trouvée dans le fichier",
+      });
+    }
+
+    const sheet = workbook.Sheets[sheetName];
+
+    const data = xlsx.utils.sheet_to_json(sheet, {
+      defval: null,
+    });
+
+    if (!data.length) {
+      return res.status(404).json({
+        error: "Le fichier ne contient pas de contenu",
+      });
+    }
+
+    const normalizedData = data.map((row) => {
+      const newRow = {};
+
+      Object.entries(row).forEach(([key, value]) => {
+        newRow[String(key).toLowerCase().trim()] = value;
+      });
+
+      return newRow;
+    });
+
+    const keys = [
+      ...new Set(normalizedData.flatMap((row) => Object.keys(row))),
+    ];
+
+    const currentType = types[type] || [];
+
+    const missingFields = currentType.filter(
+      (field) => !keys.includes(field.toLowerCase()),
+    );
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: `Tous les champs du module ${type} sont requis.`,
+        champs_manquants: missingFields,
+      });
+    }
+
+    switch (type) {
+      case "candidat": {
+        const candidatExist = await Promise.all(
+          normalizedData.map(async (c) => {
+            const OR = [];
+
+            if (c.numero_cnib) {
+              OR.push({ numero_cnib: String(c.numero_cnib).trim() });
+            }
+
+            if (c.email) {
+              OR.push({ email: String(c.email).trim() });
+            }
+
+            if (c.telephone) {
+              OR.push({ telephone: String(c.telephone).trim() });
+            }
+
+            if (!OR.length) return null;
+
+            return prisma.candidat.findFirst({
+              where: { OR },
+            });
+          }),
+        );
+
+        const candidatsAInserer = normalizedData.filter(
+          (_, index) => !candidatExist[index],
+        );
+
+        if (candidatsAInserer.length > 0) {
+          await prisma.candidat.createMany({
+            data: candidatsAInserer.map((c) => ({
+              nom: c.nom != null ? String(c.nom).trim() : null,
+              prenom: c.prenom != null ? String(c.prenom).trim() : null,
+              sexe: c.sexe != null ? String(c.sexe).trim() : null,
+              date_naissance: c.date_naissance
+                ? new Date(c.date_naissance)
+                : null,
+              lieu_naissance:
+                c.lieu_naissance != null
+                  ? String(c.lieu_naissance).trim()
+                  : null,
+              pays_naissance:
+                c.pays_naissance != null
+                  ? String(c.pays_naissance).trim()
+                  : null,
+              numero_cnib:
+                c.numero_cnib != null ? String(c.numero_cnib).trim() : null,
+              date_delivrance: c.date_delivrance
+                ? new Date(c.date_delivrance)
+                : null,
+              telephone:
+                c.telephone != null ? String(c.telephone).trim() : null,
+              email: c.email != null ? String(c.email).trim() : null,
+              mot_de_passe:
+                c.mot_de_passe != null ? String(c.mot_de_passe) : null,
+              statut_compte:
+                c.statut_compte != null
+                  ? String(c.statut_compte).trim()
+                  : null,
+              type_candidat:
+                c.type_candidat != null
+                  ? String(c.type_candidat).trim()
+                  : null,
+            })),
+            skipDuplicates: true,
+          });
+        }
+
+        break;
+      }
+
+      case "centre": {
+        const exist = await Promise.all(
+          normalizedData.map(async (f) => {
+            return prisma.centre.findFirst({
+              where: {
+                nom: {
+                  equals: String(f.nom).trim(),
+                  mode: "insensitive",
+                },
+              },
+            });
+          }),
+        );
+
+        const centresAInserer = normalizedData.filter(
+          (_, index) => !exist[index],
+        );
+
+        if (centresAInserer.length > 0) {
+          await prisma.centre.createMany({
+            data: centresAInserer.map((f) => ({
+              nom: String(f.nom).trim(),
+            })),
+            skipDuplicates: true,
+          });
+        }
+
+        break;
+      }
+
+      case "concours": {
+        for (const f of normalizedData) {
+          const concoursExiste = await prisma.concours.findFirst({
+            where: {
+              nom: {
+                equals: String(f.nom).trim(),
+                mode: "insensitive",
+              },
+            },
+            select: {
+              id_concours: true,
+              nom: true,
+            },
+          });
+
+          if (concoursExiste) {
+            console.log(`Concours déjà existant : ${f.nom}`);
+            continue;
+          }
+
+          let categorie = await prisma.categorieConcours.findFirst({
+            where: {
+              libelle: {
+                equals: String(f.categorie).trim(),
+                mode: "insensitive",
+              },
+            },
+            select: {
+              id: true,
+              libelle: true,
+            },
+          });
+
+          if (!categorie) {
+            categorie = await prisma.categorieConcours.create({
+              data: {
+                libelle: String(f.categorie).trim(),
+              },
+              select: {
+                id: true,
+                libelle: true,
+              },
+            });
+          }
+
+          const nomsCentres = f.centres
+            ? String(f.centres)
+                .split(",")
+                .map((nom) => nom.trim())
+                .filter(Boolean)
+            : [];
+
+          const centres = [];
+
+          for (const nomCentre of nomsCentres) {
+            let centre = await prisma.centre.findFirst({
+              where: {
+                nom: {
+                  equals: nomCentre,
+                  mode: "insensitive",
+                },
+              },
+              select: {
+                id_centre: true,
+                nom: true,
+              },
+            });
+
+            if (!centre) {
+              centre = await prisma.centre.create({
+                data: {
+                  nom: nomCentre,
+                },
+                select: {
+                  id_centre: true,
+                  nom: true,
+                },
+              });
+            }
+
+            centres.push(centre);
+          }
+
+          console.log(f);
+          const nouveauConcours = await prisma.concours.create({
+            data: {
+              nom: String(f.nom).trim(),
+              type: String(f.type).trim(),
+              nombre_postes: Number(f.nombres_postes),
+              annee: Number(f.annee),
+              date_debut: new Date(f.date_debut),
+              date_fin: new Date(f.date_fin),
+              frais_inscription: 800,
+              categorie: {
+                connect: {
+                  id: categorie.id,
+                },
+              },
+            },
+            select: {
+              id_concours: true,
+              nom: true,
+            },
+          });
+
+          if (centres.length > 0) {
+            await prisma.concoursCentre.createMany({
+              data: centres.map((centre) => ({
+                concoursId: nouveauConcours.id_concours,
+                centreId: centre.id_centre,
+              })),
+              skipDuplicates: true,
+            });
+          }
+        }
+
+        break;
+      }
+
+      case "inscription": {
+        const inscriptions = normalizedData.map((f) => ({
+          id_candidat: Number(f.id_candidat),
+          id_concours: Number(f.id_concours),
+          id_centre: Number(f.id_centre),
+        }));
+
+        const exist = await Promise.all(
+          inscriptions.map(async (f) => {
+            return prisma.inscription.findFirst({
+              where: {
+                id_candidat: f.id_candidat,
+                id_concours: f.id_concours,
+              },
+            });
+          }),
+        );
+
+        const inscriptionsAInserer = inscriptions.filter(
+          (_, index) => !exist[index],
+        );
+
+        const inscriptionsValides = [];
+
+        for (const inscription of inscriptionsAInserer) {
+          const candidat = await prisma.candidat.findUnique({
+            where: {
+              id_candidat: inscription.id_candidat,
+            },
+          });
+
+          if (!candidat) {
+            console.log(`Candidat inexistant : ${inscription.id_candidat}`);
+            continue;
+          }
+
+          const concours = await prisma.concours.findUnique({
+            where: {
+              id_concours: inscription.id_concours,
+            },
+          });
+
+          if (!concours) {
+            console.log(`Concours inexistant : ${inscription.id_concours}`);
+            continue;
+          }
+
+          const centre = await prisma.centre.findUnique({
+            where: {
+              id_centre: inscription.id_centre,
+            },
+          });
+
+          if (!centre) {
+            console.log(`Centre inexistant : ${inscription.id_centre}`);
+            continue;
+          }
+
+          inscriptionsValides.push(inscription);
+        }
+
+        if (inscriptionsValides.length > 0) {
+          await prisma.inscription.createMany({
+            data: inscriptionsValides,
+            skipDuplicates: true,
+          });
+        }
+
+        break;
+      }
+
+      case "examen": {
+        await prisma.examen.createMany({
+          data: normalizedData.map((f) => ({
+            date_examen: new Date(f.date_examen),
+            heure: String(f.heure),
+            intitule: String(f.intitule).trim(),
+            id_concours: Number(f.id_concours),
+          })),
+          skipDuplicates: true,
+        });
+
+        break;
+      }
+    }
+
+    return res.status(200).json({
+      message: `Importation ${type} effectuée avec succès`,
+      nombre: normalizedData.length,
+      keys,
+    });
+  } catch (error) {
+    console.error("Erreur CreateClient :", error);
+
+    return res.status(500).json({
+      error: "Erreur lors de l'importation",
+      details: error.message,
+    });
+  }
+}
+
   static async PutResultat(req, res) {
     // recevoir les resultats en un ou en masse
     const { id_concours, id_examen } = req.params;
@@ -2995,9 +3475,9 @@ export class AdminController {
   }
 
   static async getResultat(req, res) {
-    // const page = parseInt(req.query.page) || 1;
-    // const limit = 10;
-    // const skip = (page - 1) * limit;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
 
     const CacheKey = "resultat";
     // verfier si les donnees existe en cache
@@ -3031,4 +3511,16 @@ export class AdminController {
 
     return res.status(200).json({ resultat: rs });
   }
+
+  // static async GetResultFirts (req,res){
+
+  //   const exm = await prisma.examen.findMany({
+  //     where:{},
+  //     select:{
+  //       id_examen:true,
+  //       // concours:{}
+
+  //     }
+  //   })
+  // }
 }

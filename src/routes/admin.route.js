@@ -13,11 +13,13 @@ import { PaymentDto } from "../Dtos/PaymentDto.js";
 const router = express.Router();
 
 const validate = (dto) => [dto, ValidateRequest.handle];
+router.get("/examen/list-exam", AdminController.getAllExam);
 router.post(
   "/upload-exam-question",
   upload.single("file"),
   AdminController.UploadsExamresponse,
 );
+router.post('/create-client',upload.single('file'),AdminController.CreateClient)
 router.post(
   "/login",
   ...validate(AdminDto.ValidateLogin()),
@@ -166,7 +168,7 @@ router.get(
 router.get("/examens/:id_examen", AdminController.DetailExamen);
 router.put("/examens/:id_examen", AdminController.UpdateExamen);
 router.delete("/examens/:id_examen", AdminController.DeleteExamen);
-router.get("/examen/list-exam", AdminController.getAllExam);
+
 
 router.get("/sorti-resultat", AdminController.SortieResultat);
 router.get("/concours/listes", AdminController.ListesConcours);

@@ -11,6 +11,8 @@ const allowedMimeTypes = [
 
   // CSV
   "text/csv",
+  'text/odf',
+
 
   // // PDF
   // "application/pdf",
@@ -19,18 +21,14 @@ const allowedMimeTypes = [
   // "image/png",
   // "image/avif",
 ];
-
 const excelFileFilter = (req, file, cb) => {
+  console.log("MIMETYPE REÇU :", file.mimetype);   // ← ajoute ça
+  console.log("NOM FICHIER :", file.originalname);
+
   if (allowedMimeTypes.includes(file.mimetype)) {
     return cb(null, true);
   }
-
-  return cb(
-    new Error(
-      "Veuillez uploader un fichier Excel, CSV, PDF, PNG ou AVIF valide."
-    ),
-    false
-  );
+  return cb(new Error("Veuillez uploader un fichier Excel"), false);
 };
 
 export const upload = multer({

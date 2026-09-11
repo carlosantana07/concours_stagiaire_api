@@ -788,11 +788,10 @@ export class CandidatController {
         },
       },
       select: {
+        id_concours:true,
         note_cg: true,
         note_sp: true,
-        // moyenne_generale: true,
         statut: true,
-
         concours: {
           select: {
             id_concours: true,

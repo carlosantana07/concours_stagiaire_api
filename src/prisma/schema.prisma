@@ -135,14 +135,15 @@ model examen {
 // }
 
 model document {
-  id_document   Int          @id @default(autoincrement())
-  fichier       String       @db.VarChar(500)
-  url           String
-  req_id        String
-  date_upload   DateTime     @default(now()) @db.Timestamp(6)
-  id_candidat   String       @db.Uuid
-  type_document TypeDocument
-  candidat      candidat     @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
+  id_document    Int          @id @default(autoincrement())
+  fichier        String       @db.VarChar(500)
+  url            String
+  req_id         String
+  date_upload    DateTime     @default(now()) @db.Timestamp(6)
+  id_candidat    String       @db.Uuid
+  type_document  TypeDocument
+  // id_inscription Int?
+  candidat       candidat     @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model inscription {
@@ -159,8 +160,19 @@ model inscription {
   centre             centre            @relation(fields: [id_centre], references: [id_centre], onDelete: Cascade, onUpdate: NoAction)
   concours           concours          @relation(fields: [id_concours], references: [id_concours], onDelete: Cascade, onUpdate: NoAction)
   paiement           paiement[]
+  diplomes           diplome[]
 
   @@unique([id_candidat, id_concours])
+}
+
+model diplome {
+  id_diplome     String      @id @default(uuid())
+  fichier        String      @db.VarChar(500)
+  url            String
+  req_id         String
+  id_inscription Int
+  inscription    inscription @relation(fields: [id_inscription], references: [id_inscription], onDelete: Cascade, onUpdate: NoAction)
+  date_upload    DateTime    @default(now()) @db.Timestamp(6)
 }
 
 model paiement {
@@ -181,20 +193,20 @@ model paiement {
 // sp = specialisation
 
 model resultat {
-  id_candidat      String    @db.Uuid
-  note_cg             Decimal?  @db.Decimal(5, 2)
-  note_sp            Decimal?  @db.Decimal(5, 2)
+  id_candidat String   @db.Uuid
+  note_cg     Decimal? @db.Decimal(5, 2)
+  note_sp     Decimal? @db.Decimal(5, 2)
   // moyenne_generale Decimal?  @db.Decimal(5, 2)
 
   statut      StatutResultat?
-  id_concours      Int
-  id_examen        Int
-  create_at        DateTime  @default(now())
-  update_at        DateTime  @default(now())
-  delete_at        DateTime?
-  candidat         candidat  @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
-  examen           examen    @relation(fields: [id_examen], references: [id_examen], onDelete: Cascade, onUpdate: NoAction)
-  concours         concours  @relation(fields: [id_concours], references: [id_concours], onDelete: NoAction)
+  id_concours Int
+  id_examen   Int
+  create_at   DateTime        @default(now())
+  update_at   DateTime        @default(now())
+  delete_at   DateTime?
+  candidat    candidat        @relation(fields: [id_candidat], references: [id_candidat], onDelete: Cascade, onUpdate: NoAction)
+  examen      examen          @relation(fields: [id_examen], references: [id_examen], onDelete: Cascade, onUpdate: NoAction)
+  concours    concours        @relation(fields: [id_concours], references: [id_concours], onDelete: NoAction)
 
   @@id([id_candidat, id_examen])
 }
@@ -242,6 +254,7 @@ enum StatutResultat {
   ATTENTE
   INDISPONIBLE
 }
+
 enum StatutCompte {
   ACTIF
   INACTIF
@@ -295,5 +308,4 @@ enum TypeDocument {
   CNIB
   PASSPORT
   NATIONALITE
-  DIPLOME
 }
