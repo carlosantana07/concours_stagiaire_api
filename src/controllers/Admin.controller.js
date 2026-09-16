@@ -470,9 +470,9 @@ export class AdminController {
     ]);
 
     const response = {
-      page,
-      limit,
-      total,
+      page:page,
+      limit:limit,
+      total:total,
       totalPages: Math.ceil(total / limit),
       data: concours,
     };
