@@ -803,6 +803,7 @@ export class CandidatController {
           select: {
             id_concours: true,
             intitule: true,
+            type_examen:true
           },
         },
       },
