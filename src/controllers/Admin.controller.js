@@ -794,8 +794,8 @@ export class AdminController {
     }
 
     // recuperer tous les candidats et les mettres en caache
-
-    const candidat = await prisma.candidat.findMany({
+  const [candidat, total] = await Promise.all([
+    await prisma.candidat.findMany({
       take: limit,
       skip,
       select: {
@@ -808,7 +808,9 @@ export class AdminController {
         telephone: true,
         email: true,
       },
-    });
+    }) ,
+    await prisma.candidat.count()
+  ]);
 
     if (!candidat) {
       return res.status(404).json({ error: "aucun candidat trouve" });
@@ -1641,11 +1643,15 @@ export class AdminController {
     // if (data) {
     //   return res.status(200).json(data);
     // }
-    const examen = await prisma.examen.findMany({
+
+      const [examen, total] = await Promise.all([
+    await prisma.examen.findMany({
       take: limit,
       skip,
-    });
+    }),
 
+    await prisma.examen.count()
+  ])
     // await redis.set(cachekey, JSON.stringify(examen));
     return res.status(200).json({
       page: page,
@@ -2258,7 +2264,12 @@ export class AdminController {
     const page = parseInt(req.query.page) || 1;
     const limit = 10;
     const skip = (page - 1) * limit;
-    const concours = await prisma.concours.findMany({
+    
+    const [concours,total] = await Promise.all([
+
+     await prisma.concours.findMany({
+      take:limit,
+      skip,
       select: {
         nom: true,
         nombre_postes: true,
@@ -2270,7 +2281,10 @@ export class AdminController {
         type: true,
         statut_concours: true,
       },
-    });
+    }),
+
+    await prisma.concours.count()
+       ])
 
     return res.json({
       page: page,
@@ -2514,14 +2528,16 @@ export class AdminController {
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    const centre = await prisma.centre.findMany({
+      const [centre, total] = await Promise.all([
+     await prisma.centre.findMany({
       take: limit,
       skip,
       orderBy: {
         nom: "asc",
       },
-    });
-
+    }),
+    await prisma.centre.count()
+  ]);
     return res.json({
       page: page,
       limit: limit,
@@ -2541,7 +2557,8 @@ export class AdminController {
     if (data) {
       return res.json({ data: JSON.parse(data) });
     }
-    const insc = await prisma.inscription.findMany({
+      const [insc, total] = await Promise.all([
+     await prisma.inscription.findMany({
       where: {
         delete_at: null,
       },
@@ -2580,7 +2597,9 @@ export class AdminController {
         //   },
         // },
       },
-    });
+    }),
+    await prisma.inscription.count()
+  ])
     let is = filterDeleted(insc).data;
     console.log(is);
 
@@ -3633,7 +3652,8 @@ export class AdminController {
       return res.status(200).json({ resultat: data });
     }
 
-    const resultat = await prisma.resultat.findMany({
+    const [resultat,total]= await Promise.all([
+        await prisma.resultat.findMany({
       select: {
         id_concours: true,
         note_cg: true,
@@ -3645,7 +3665,12 @@ export class AdminController {
           },
         },
       },
-    });
+    }),
+
+    await prisma.resultat.count()
+
+    ]); 
+
 
     const marge = 60;
     const rs = resultat.map((f) => ({
@@ -3655,7 +3680,13 @@ export class AdminController {
 
     await redis.set(CacheKey, JSON.stringify(rs), "EX", 300);
 
-    return res.status(200).json({ resultat: rs });
+    return res.status(200).json({ 
+           page: page,
+      limit: limit,
+      total: total,
+      totalPages: Math.ceil(total / limit),
+      data: rs 
+    });
   }
 
   // static async GetResultFirts (req,res){
