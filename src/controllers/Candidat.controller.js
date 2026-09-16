@@ -514,15 +514,15 @@ export class CandidatController {
       });
     }
 
-    if (
-      type_document.toLowerCase() === "cnib" ||
-      ("passport" && existType.type_document.toLocaleLowerCase === "cnib") ||
-      "passport"
-    ) {
-      return res
-        .status(409)
-        .json({ error: "Vous devez inserer votre certificat de nationalite" });
-    }
+    // if (
+    //   type_document.toLowerCase() === "cnib" ||
+    //   ("passport" && existType.type_document.toLocaleLowerCase === "cnib") ||
+    //   "passport"
+    // ) {
+    //   return res
+    //     .status(409)
+    //     .json({ error: "Vous devez inserer votre certificat de nationalite" });
+    // }
     const typesValides = ["CNIB", "PASSPORT", "NATIONALITE"];
     if (!typesValides.includes(type_document.toUpperCase())) {
       return res.status(400).json({
@@ -654,7 +654,7 @@ export class CandidatController {
 
     // Mettre à jour la date dans la base (facultatif)
     await prisma.document.update({
-      where: { id: existingDoc.id, id_candidat },
+      where: { id_document: existingDoc.id_document, id_candidat },
       data: { date_upload: new Date() },
     });
 
@@ -707,7 +707,7 @@ export class CandidatController {
 
     // Supprimer l'entrée en base
     await prisma.document.delete({
-      where: { id: existingDoc.id, id_candidat },
+      where: { id_document: existingDoc.id_document, id_candidat },
     });
 
     await redis.del(cacheKey);
@@ -732,6 +732,7 @@ export class CandidatController {
         id_candidat: id_candidat,
       },
       select: {
+        fichier:true,
         url: true,
         type_document: true,
       },
