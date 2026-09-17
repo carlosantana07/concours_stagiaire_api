@@ -89,6 +89,21 @@ export class InscriptionController {
         error: "Vous n'etes pas autoriser a passer un autre concours.",
       });
     }
+    const listEligPro = ["PROFESSIONNEL", "HANDICAPE"];
+
+    if (cand.type_candidat === "PROFESSIONNEL" && !listEligPro[concours.type]) {
+      return res
+        .status(403)
+        .json({ error: "Vous n'avez pas acces a cet concours" });
+    }
+
+    const listEligDirect = ["DIRECT", "HANDICAPE"];
+
+    if (cand.type_candidat === "DIRECT" && !listEligDirect[concours.type]) {
+      return res
+        .status(403)
+        .json({ error: "Vous n'avez pas access a cet concours" });
+    }
 
     const dejaInscrit = await prisma.inscription.findFirst({
       where: { id_candidat: id_candidat, id_concours: id_concours },
