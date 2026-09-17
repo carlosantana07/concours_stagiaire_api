@@ -38,6 +38,19 @@ export class AdminController {
 
   static #statusPaiement = ["REUSSI", "ECHOUE", "ATTENTE"];
 
+  async  delByPattern(pattern) {
+  let cursor = '0';
+  do {
+    const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+    cursor = nextCursor;
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
+  } while (cursor !== '0');
+}
+
+
+
   static async Register(req, res) {
     const { email, mot_de_passe, nom, prenom, telephone, role } = req.body;
 
@@ -63,7 +76,8 @@ export class AdminController {
         updated_at: new Date(),
       },
     });
-    await redis.del(cachekey);
+  const cacheKey = `inscription:*`
+    await delByPattern(cachekey);
     return res.status(201).json({
       message: "Votre compte a été créé avec succès",
       id: admin.id_admin,
@@ -560,8 +574,10 @@ export class AdminController {
         statut_concours: statut_concours ?? concours.statut_concours,
       },
     });
+    const cachekey = `concours`
+    await delByPattern(cachekey);
 
-    await redis.del(`concours`);
+  
 
     return res.status(200).json({
       message: "Les informations du concours ont été mises à jour",
@@ -591,7 +607,8 @@ export class AdminController {
       await tx.concours.delete({ where: { id_concours } });
     });
 
-    await redis.del("concours");
+        const cachekey = `concours`
+    await delByPattern(cachekey);
 
     return res.status(200).json({ message: "Concours supprimé avec succès" });
   }
@@ -771,8 +788,8 @@ export class AdminController {
       data: { delete_at: new Date() },
     });
 
-    const cacheKey = `candidat`;
-    await redis.del(cacheKey);
+    const cacheKey = `candidat:*`;
+    await delByPattern(cacheKey);
 
     // await redis.del(`candida);
 
@@ -786,7 +803,7 @@ export class AdminController {
 
     // console.log(page)
 
-    const cachekey = `candidat`;
+    const cachekey = `candidat:${page}:${limit}`;
 
     const cached = await redis.get(cachekey);
     if (cached) {
@@ -1018,9 +1035,9 @@ export class AdminController {
       return UpdateCandidat;
     });
 
-    const cacheKey = `candidat`;
+    const cacheKey = `candidat:*`;
 
-    await redis.del(cacheKey);
+     await delByPattern(cacheKey);
 
     return res
       .status(200)
@@ -1108,6 +1125,10 @@ export class AdminController {
           ministere: ministere ?? null,
         },
       });
+
+          const cacheKey = `candidat:*`;
+
+     await delByPattern(cacheKey);
 
       return res.status(201).json({
         message: "le compte candidat a ete creer avec succes ",
@@ -1337,8 +1358,8 @@ export class AdminController {
     });
 
     // await invaliderCache("categorieConcours");
-    const cacheKey = `categorie`;
-    await redis.del(cacheKey);
+    const cacheKey = `categorie:*`;
+ await delByPattern(cacheKey);
     return res
       .status(201)
       .json({ message: "Catégorie(s) de concours créée(s) avec succès" });
@@ -1349,7 +1370,7 @@ export class AdminController {
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    const cacheKey = `categorie`;
+    const cacheKey = `categorie:${page}:${limit}`;
     const cached = await redis.get(cacheKey);
     if (cached) {
       return res.status(200).json(JSON.parse(cached));
@@ -1390,7 +1411,7 @@ export class AdminController {
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    const cacheKey = `categorieConcours`;
+    const cacheKey = `categorieConcours:${page}:${limit}`;
     const cached = await redis.get(cacheKey);
     if (cached) {
       return res.status(200).json(JSON.parse(cached));
@@ -1455,7 +1476,8 @@ export class AdminController {
 
     // await invaliderCache("categorie");
     // await invaliderCache("categorieConcours");
-
+      const cacheKey = `categorieConcours:*`;
+     await delByPattern(cacheKey);
     return res.status(200).json({ message: "Catégorie modifiée avec succès" });
   }
 
@@ -1467,7 +1489,7 @@ export class AdminController {
         .status(400)
         .json({ error: "La référence de l'id est manquante ou invalide" });
     }
-    const cacheKey = `categorieConcours`;
+
     const categorie = await prisma.categorieConcours.findUnique({
       where: { id: id_categorie },
     });
@@ -1478,7 +1500,8 @@ export class AdminController {
 
     await prisma.categorieConcours.delete({ where: { id: id_categorie } });
 
-    await redis.del(cacheKey);
+        const cacheKey = `categorieConcours:*`;
+ await delByPattern(cacheKey);
 
     return res.status(200).json({ message: "Catégorie supprimée avec succès" });
   }
@@ -1500,9 +1523,9 @@ export class AdminController {
       return res.status(400).json({ error: "ID de concours invalide" });
     }
 
-    const cacheKey = `examen:${id_concours}`;
+    const cacheKey = `examen:*`;
 
-    await redis.del(cacheKey);
+ await delByPattern(cacheKey);
 
     const concours = await prisma.concours.findUnique({
       where: { id_concours: concoursId },
@@ -1587,9 +1610,9 @@ export class AdminController {
       return res.status(404).json({ error: "Examen introuvable" });
     }
 
-    const cacheKey = `examen:${examen.id_concours}`;
+    const cacheKey = `examen:* `;
 
-    await redis.del(cacheKey);
+ await delByPattern(cacheKey);
 
     const updated = await prisma.examen.update({
       where: { id_examen },
@@ -1622,9 +1645,9 @@ export class AdminController {
       return res.status(404).json({ error: "Examen introuvable" });
     }
 
-    const cacheKey = `examen:${examen.id_concours}`;
+    const cacheKey = `examen:*`;
 
-    await redis.del(cacheKey);
+   await delByPattern(cacheKey);
 
     await prisma.examen.delete({ where: { id_examen } });
 
@@ -1636,13 +1659,13 @@ export class AdminController {
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    // const cachekey = `examen`;
+    const cachekey = `examen:${page}:${limit}`;
 
-    // const data = await redis.get(cachekey);
+    const data = await redis.get(cachekey);
 
-    // if (data) {
-    //   return res.status(200).json(data);
-    // }
+    if (data) {
+      return res.status(200).json(data);
+    }
 
       const [examen, total] = await Promise.all([
     await prisma.examen.findMany({
@@ -1652,7 +1675,7 @@ export class AdminController {
 
     await prisma.examen.count()
   ])
-    // await redis.set(cachekey, JSON.stringify(examen));
+    await redis.set(cachekey, JSON.stringify(examen));
     return res.status(200).json({
       page: page,
       limit: limit,
@@ -1676,8 +1699,8 @@ export class AdminController {
       data: { nom, id_centre, quota },
     });
 
-    const cacheKey = `LieuCompo:${lieux.id_lieux}`;
-    await redis.del(cacheKey);
+    const cacheKey = `LieuCompo:*`;
+   await delByPattern(cacheKey);
 
     return res.status(201).json({
       message: "Lieu de composition ajouté avec succès",
@@ -2013,9 +2036,9 @@ export class AdminController {
       },
     });
 
-    const cacheKey = `inscription`;
+    const cacheKey = `inscription:*`;
 
-    await redis.del(cacheKey);
+    await delByPattern(cacheKey);
     return res.status(201).json({
       message: "Inscription créée — en attente de paiement",
       data: {
@@ -2043,7 +2066,7 @@ export class AdminController {
         .json({ error: "le status de l'inscriptions est manquant" });
     }
 
-    const cacheKey = `inscription`;
+    const cacheKey = `inscription:*`;
 
     // verifier si le status envoyer en backend correspond biens
     const strUpstatus = status_inscriptions.toUpperCase();
@@ -2083,7 +2106,7 @@ export class AdminController {
       return updateInsc;
     });
 
-    await redis.del(cacheKey);
+    await delByPattern(cacheKey);
     return res.status(200).json({ message: "modification du status reussi" });
   }
 
@@ -2105,7 +2128,7 @@ export class AdminController {
         .json({ error: "les references du centre sont manquantes" });
     }
 
-    const cacheKey = `inscription`;
+    const cacheKey = `inscription:*`;
     const centre = await prisma.centre.findUnique({
       where: {
         id_centre: parseInt(id_centre),
@@ -2177,7 +2200,7 @@ export class AdminController {
 
       return updateInsc;
     });
-    await redis.del(cacheKey);
+     await delByPattern(cacheKey);
     return res.status(200).json({ message: "Modification du centre reussi" });
   }
 
@@ -2264,6 +2287,23 @@ export class AdminController {
     const page = parseInt(req.query.page) || 1;
     const limit = 10;
     const skip = (page - 1) * limit;
+
+    const cachekey =`concours:${page}:${limit}`
+
+    // verifier si le cache exite 
+
+    const data = await redis.get(cachekey);
+
+
+    if(data){
+      return res.status (200).json({
+              page: page,
+      limit: limit,
+      total: total,
+      totalPages: Math.ceil(total / limit),
+      data: JSON.parse(data),
+      })
+    }
     
     const [concours,total] = await Promise.all([
 
@@ -2348,6 +2388,9 @@ export class AdminController {
       return updateInscription;
     });
 
+    const cacheKey = `inscription:*`;
+ await delByPattern(cacheKey);
+
     return res.json({ message: "Inscriptions modifier avec succes" });
   }
 
@@ -2368,7 +2411,7 @@ export class AdminController {
     if (!inscription) {
       return res.status(404).json({ error: "Aucune Inscription trouvee" });
     }
-    const cacheKey = `inscription`;
+    const cacheKey = `inscription:*`;
     await prisma.$transaction(async (tx) => {
       //  return await tx.inscription.delete({
       //   where:{id_inscription: inscription.id_inscription}
@@ -2382,7 +2425,7 @@ export class AdminController {
       });
     });
 
-    await redis.del(cacheKey);
+ await delByPattern(cacheKey);
     return res
       .status(200)
       .json({ message: "Inscription supprimer avec succes " });
@@ -2396,7 +2439,7 @@ export class AdminController {
         .json({ error: "Les references du candidats sont manquantes" });
     }
     // les donnner de caches
-    const cacheKey = `inscription:candidat:${id_candidat}`;
+    const cacheKey = `inscription:${id_candidat}`;
     const data = await redis.get(cacheKey);
 
     if (data) {
@@ -2455,7 +2498,7 @@ export class AdminController {
       });
     });
 
-    await redis.del(cachekey);
+ await delByPattern(cachekey);
     return res.status(200).json({ message: "Admin modifier avec succes" });
   }
 
@@ -2498,7 +2541,7 @@ export class AdminController {
         },
       });
 
-      await redis.del(cachekey);
+ await delByPattern(cachekey);
       return res.status(200).json({ message: "Admin supprimer avec succes" });
     });
   }
