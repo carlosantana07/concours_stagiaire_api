@@ -2595,7 +2595,7 @@ export class AdminController {
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    const cacheKey = `inscription`;
+    const cacheKey = `inscription:${page}:${limit}`;
     const data = await redis.get(cacheKey);
     if (data) {
       return res.json({ data: JSON.parse(data) });

@@ -13,13 +13,7 @@ import { PaymentDto } from "../Dtos/PaymentDto.js";
 const router = express.Router();
 
 const validate = (dto) => [dto, ValidateRequest.handle];
-router.get("/examen/list-exam", AdminController.getAllExam);
-router.post(
-  "/upload-exam-question",
-  upload.single("file"),
-  AdminController.UploadsExamresponse,
-);
-router.post('/create-client',upload.single('file'),AdminController.CreateClient)
+
 router.post(
   "/login",
   ...validate(AdminDto.ValidateLogin()),
@@ -27,7 +21,13 @@ router.post(
 );
 
 router.use(AdminMiddleware.handle);
-
+router.get("/examen/list-exam", AdminController.getAllExam);
+router.post(
+  "/upload-exam-question",
+  upload.single("file"),
+  AdminController.UploadsExamresponse,
+);
+router.post('/create-client',upload.single('file'),AdminController.CreateClient)
 router.get("/categories", AdminController.GetCategorie);
 // router.get('/candidats/get-all/c',AdminController.GetAllCandidat)
 
